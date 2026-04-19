@@ -11,7 +11,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20   # safer than 22 for Cordova
+          node-version: 20
+
+      - name: Verify Node
+        run: |
+          node -v
+          npm -v
 
       - name: Install dependencies
         run: npm install
@@ -22,7 +27,7 @@ jobs:
       - name: Disable telemetry
         run: |
           mkdir -p ~/.cordova
-          echo '{"telemetry":false}' > ~/.cordova/config.json
+          echo '{ "telemetry": false }' > ~/.cordova/config.json
 
       - name: Build App
         run: |
