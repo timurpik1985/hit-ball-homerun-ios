@@ -13,27 +13,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          # This ensures we don't accidentally pull a version from a local file
-          check-latest: true 
-
-      - name: Debug Environment
-        run: |
-          echo "Checking Node location: $(which node)"
-          echo "Version: $(node -v)"
+          # This forces GitHub to ignore any local .nvmrc or .node-version files
+          always-auth: false 
 
       - name: Install Cordova
+        # We use --force to tell npm to stop worrying about the engine warnings
         run: npm install -g cordova@latest --force
 
-      - name: Prepare and Build
-        # This ENV line tells Cordova to opt-out of telemetry without needing a command
+      - name: Build iOS
+        # Instead of running a 'telemetry' command, we use this Environment Variable.
+        # It tells Cordova to be quiet without crashing the build.
         env:
           CORDOVA_TELEMETRY_OPT_OUT: 1
         run: |
-          cordova platform add ios --verbose
-          cordova build ios --verbose
-
+          cordova platform add ios
+          cordova build ios
+          
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build
+          name: ios-app
           path: platforms/ios/build/
