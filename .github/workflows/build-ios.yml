@@ -9,32 +9,30 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Force Fix Node Path
+      - name: Clean Environment
         run: |
-          # 1. Force the system to use Node 20/22 from Homebrew
-          brew install node@20
-          brew link --overwrite node@20
-          echo "$(brew --prefix node@20)/bin" >> $GITHUB_PATH
-          
-          # 2. KILL any existing cordova config that triggers the bug
+          # 1. Force remove any hidden cordova settings causing the crash
           rm -rf ~/.cordova
           rm -rf ~/.config/configstore/cordova-config.json
+          
+          # 2. Pre-create a clean config
+          mkdir -p ~/.cordova
+          echo '{"telemetry": false}' > ~/.cordova/config.json
 
       - name: Install Stable Cordova
-        # We are downgrading to Cordova 12.0.0. 
-        # Why? Because Cordova 13 + Node 18 = The 'Telemetry' Crash.
-        # Cordova 12 is perfectly compatible with your config.xml.
-        run: |
-          npm install -g cordova@12.0.0 --force
+        # We are using 12.0.0 because 13.0.0 + Node 18 = Permanent Error.
+        # This version will actually work with the Node 18 on your runner.
+        run: npm install -g cordova@12.0.0 --force
 
       - name: Build App
         env:
           CORDOVA_TELEMETRY_OPT_OUT: 1
+          CI: true
         run: |
-          # Use --no-telemetry as a hidden flag to bypass the check
+          # We use --non-interactive to skip all prompts
           cordova platform add ios --non-interactive
           cordova build ios --non-interactive
-
+          
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
