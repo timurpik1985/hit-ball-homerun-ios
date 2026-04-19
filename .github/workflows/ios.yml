@@ -9,28 +9,32 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Force Install Node 22
+      - name: Force Manual Node Upgrade
         run: |
+          # Manually install Node 22 via Homebrew
           brew install node@22
-          brew link --overwrite node@22
-          echo "/usr/local/opt/node@22/bin" >> $GITHUB_PATH
+          # Force the runner to prioritize this version over the built-in one
+          echo "$(brew --prefix node@22)/bin" >> $GITHUB_PATH
           
-      - name: Verify Environment
+      - name: Verify Fix
         run: |
+          # If this doesn't show v22, the runner environment is locked
           node -v
           npm -v
 
-      - name: Install and Config Cordova
+      - name: Install Cordova and Skip Prompts
         run: |
-          npm install -g cordova@latest
+          # Using --force to ignore engine warnings if they appear
+          npm install -g cordova@latest --force
+          # This command stops the "telemetry" crash you are seeing
           cordova telemetry off
           
-      - name: Add Platform and Build
+      - name: Build App
         run: |
-          cordova platform add ios --verbose
-          cordova build ios --verbose
+          cordova platform add ios
+          cordova build ios
           
-      - name: Upload Artifact
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: ios-app
