@@ -1,0 +1,38 @@
+name: Build iOS App
+on:
+  workflow_dispatch:
+  
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install Cordova
+      run: |
+        npm install -g cordova@latest
+        cordova telemetry off
+        
+    - name: Setup iOS platform
+      run: |
+        cordova platform add ios@latest
+        cordova plugin add cordova-plugin-admob-free@latest
+        cordova plugin add cordova-plugin-whitelist@latest
+        
+    - name: Build iOS app
+      run: |
+        cordova build ios --release --device
+        
+    - name: Upload iOS app
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-app
+        path: platforms/ios/build/device/
+        retention-days: 30
