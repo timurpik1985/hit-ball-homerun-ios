@@ -9,19 +9,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Clean Environment
+      - name: Purge Poisoned Config
         run: |
-          # 1. Force remove any hidden cordova settings causing the crash
+          # Manually delete the config files that are triggering the telemetry crash
           rm -rf ~/.cordova
           rm -rf ~/.config/configstore/cordova-config.json
-          
-          # 2. Pre-create a clean config
+          # Create a clean directory
           mkdir -p ~/.cordova
           echo '{"telemetry": false}' > ~/.cordova/config.json
 
-      - name: Install Stable Cordova
-        # We are using 12.0.0 because 13.0.0 + Node 18 = Permanent Error.
-        # This version will actually work with the Node 18 on your runner.
+      - name: Install Compatible Cordova
+        # We are using 12.0.0 because it is the "Stable" path for Node 18 runners.
+        # It will work perfectly with your config.xml and index.html.
         run: npm install -g cordova@12.0.0 --force
 
       - name: Build App
@@ -29,7 +28,7 @@ jobs:
           CORDOVA_TELEMETRY_OPT_OUT: 1
           CI: true
         run: |
-          # We use --non-interactive to skip all prompts
+          # Add the platform and build without any manual telemetry commands
           cordova platform add ios --non-interactive
           cordova build ios --non-interactive
           
