@@ -10,6 +10,6 @@
     <preference name="orientation" value="portrait" />
     
     <platform name="ios">
-        <preference name="deployment-target" value="11.0" />
+        <preference name="deployment-target" value="13.0" />
     </platform>
 </widget>
