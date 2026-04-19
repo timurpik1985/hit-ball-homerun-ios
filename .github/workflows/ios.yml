@@ -4,29 +4,16 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-latest
+    runs-on: macos-12
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
     
-    - name: Force install Node 20
+    - name: Use built-in Node 18 with old Cordova
       run: |
-        curl -fsSL https://nodejs.org/dist/v20.18.0/node-v20.18.0-darwin-x64.tar.gz | tar -xz
-        sudo mv node-v20.18.0-darwin-x64 /usr/local/node20
-        echo "/usr/local/node20/bin" >> $GITHUB_PATH
-        export PATH="/usr/local/node20/bin:$PATH"
-        
-    - name: Verify Node 20
-      run: |
-        which node
         node --version
-        which npm
         npm --version
-        
-    - name: Install compatible Cordova
-      run: |
-        export PATH="/usr/local/node20/bin:$PATH"
-        npm install -g cordova@12.0.0
+        npm install -g cordova@10.0.0
         
     - name: Check files
       run: |
@@ -34,17 +21,13 @@ jobs:
         ls -la www/
         
     - name: Add iOS platform
-      run: |
-        export PATH="/usr/local/node20/bin:$PATH"
-        cordova platform add ios@6.3.0
+      run: cordova platform add ios@5.1.1
         
     - name: Build iOS
-      run: |
-        export PATH="/usr/local/node20/bin:$PATH"  
-        cordova build ios --debug
+      run: cordova build ios
         
     - name: Upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: ios-app
         path: platforms/ios/build/
