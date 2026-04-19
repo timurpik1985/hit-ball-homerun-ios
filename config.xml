@@ -9,28 +9,30 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          check-latest: true
-
-      - name: Force System to Use Node 22
+      - name: Force Node 22 (Manual Override)
         run: |
+          # Install Node 22 via Homebrew as a backup
           brew install node@22
-          brew link --overwrite node@22
+          # Force the runner to use this path first
           echo "$(brew --prefix node@22)/bin" >> $GITHUB_PATH
+          
+      - name: Verify Environment
+        run: |
+          node -v  # Should now show v22
+          npm -v
 
       - name: Install Cordova
+        # --force is necessary to ignore engine warnings if Node 18 still lingers
         run: npm install -g cordova@latest --force
 
       - name: Build iOS
+        # Using environment variables to bypass the telemetry prompt
         env:
           CORDOVA_TELEMETRY_OPT_OUT: 1
+          CI: true
         run: |
-          # Manually create the folder so Cordova doesn't ask to create it
-          mkdir -p ~/.cordova
-          # Add the platform and build
+          # Ensure we are NOT running 'cordova telemetry off'
+          # Just add the platform and build
           cordova platform add ios --non-interactive
           cordova build ios --non-interactive
           
