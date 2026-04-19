@@ -4,32 +4,24 @@ on:
 
 jobs:
   build-ios:
-    # Use macos-latest to get the most modern build environment
     runs-on: macos-latest
-    
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Force Node.js Version
+
+      - name: Force Node 22
         uses: actions/setup-node@v4
         with:
-          # This is the most important part to fix your error
-          node-version: '22'
-          
+          node-version: 22.9.0 # Specific version to prevent auto-defaults
+          cache: 'npm'
+
+      - name: Verify Version
+        run: node -v # This MUST print v22.x.x in the logs
+
       - name: Install Cordova
-        # Now that we are on Node 22, this will succeed without engine warnings
         run: npm install -g cordova@latest
-          
-      - name: Add iOS platform
-        # Removing @5.1.1 because it is incompatible with modern macOS/Node/Cordova
-        run: cordova platform add ios
-          
-      - name: Build iOS
-        run: cordova build ios
-          
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-app
-          path: platforms/ios/build/
+
+      - name: Build
+        run: |
+          cordova platform add ios
+          cordova build ios
