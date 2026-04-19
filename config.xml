@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.yourname.hitballhomerun" version="1.0.0" xmlns="http://www.w3.org/ns/widgets">
+    <name>Hit Ball Homerun Free Game Play</name>
+    <description>The ultimate baseball hitting game with special ball unlocks!</description>
+    <author email="yourname@gmail.com" href="https://github.com/yourusername">Your Name</author>
+    
+    <content src="index.html" />
+    <access origin="*" />
+    
+    <preference name="orientation" value="portrait" />
+    <preference name="Fullscreen" value="true" />
+    
+    <platform name="ios">
+        <preference name="WKWebViewOnly" value="true" />
+        <preference name="CordovaWebViewEngine" value="CDVWKWebView" />
+        <preference name="DisallowOverscroll" value="true" />
+        <preference name="StatusBarOverlaysWebView" value="false" />
+        <preference name="StatusBarBackgroundColor" value="#000000" />
+    </platform>
+    
+    <plugin name="cordova-plugin-admob-free" source="npm" />
+    <plugin name="cordova-plugin-whitelist" source="npm" />
+</widget>
