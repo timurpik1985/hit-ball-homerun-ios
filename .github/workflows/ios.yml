@@ -1,14 +1,35 @@
-steps:
-  - uses: actions/checkout@v4
+name: Build iOS App
+on:
+  workflow_dispatch:
 
-  - uses: actions/setup-node@v4
-    with:
-      node-version: 20
+jobs:
+  build-ios:
+    runs-on: macos-latest
 
-  - run: npm install
+    steps:
+      - uses: actions/checkout@v4
 
-  - run: npm install -g cordova
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20   # safer than 22 for Cordova
 
-  - run: cordova telemetry off   # or remove entirely
+      - name: Install dependencies
+        run: npm install
 
-  - run: cordova build
+      - name: Install Cordova
+        run: npm install -g cordova@12
+
+      - name: Disable telemetry
+        run: |
+          mkdir -p ~/.cordova
+          echo '{"telemetry":false}' > ~/.cordova/config.json
+
+      - name: Build App
+        run: |
+          cordova platform add ios --non-interactive
+          cordova build ios --non-interactive
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: platforms/ios/build/
