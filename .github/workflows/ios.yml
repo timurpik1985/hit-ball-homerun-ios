@@ -4,44 +4,41 @@ on:
 
 jobs:
   build-ios:
-    # 'macos-latest' ensures you have the most up-to-date build tools
+    # Changed to latest to avoid deprecated hardware
     runs-on: macos-latest
     
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
     
-    - name: Setup Node.js
+    - name: Setup Node.js (Forced)
       uses: actions/setup-node@v4
       with:
-        node-version: '20' # Using 20 as it's the current stable LTS
+        node-version: '22'
+        # This clears the cache to ensure no old version conflicts
+        check-latest: true 
 
-    - name: Check Environment
+    - name: Verify Environment
       run: |
-        node --version
-        npm --version
+        echo "Node version:" && node -v
+        echo "NPM version:" && npm -v
         
     - name: Install Cordova
-      # I suggest trying the latest or a more recent version like 12
-      # unless your code strictly requires 10.0.0
-      run: npm install -g cordova@latest
-        
-    - name: Check files
-      run: |
-        ls -la
-        ls -la www/ || echo "www folder not found!"
+      # Using --force ignores the engine warnings if they persist
+      # but Node 22 should solve it naturally
+      run: npm install -g cordova@latest --force
         
     - name: Add iOS platform
-      # Note: ios@5.1.1 is very old (2019). 
-      # Modern Xcode (on macos-latest) usually requires ios@7.x.x
+      # I strongly recommend removing the version @5.1.1 
+      # Modern macOS/Xcode cannot build iOS 5.1.1
       run: cordova platform add ios
         
     - name: Build iOS
-      run: cordova build ios --device
+      # Added 'allow-root' just in case of permission hiccups on the runner
+      run: cordova build ios --verbose
         
-    - name: Upload Artifact
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
         name: ios-app
-        # Note: The build path often changes depending on Cordova version
-        path: platforms/ios/build/device/
+        path: platforms/ios/build/
