@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.timurpiker.hitballhomerun" version="1.0.0" xmlns="http://www.w3.org/ns/widgets">
+<widget id="com.timurpiker.hitballhomerun" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
     <name>Hit Ball Homerun Free Game Play</name>
     <description>The ultimate baseball hitting game with special ball unlocks!</description>
     <author email="timurpiker@gmail.com" href="https://github.com/timurpik1985">Timur Piker</author>
@@ -8,16 +8,16 @@
     <access origin="*" />
     
     <preference name="orientation" value="portrait" />
-    <preference name="Fullscreen" value="true" />
+    <preference name="DisallowOverscroll" value="true" />
     
     <platform name="ios">
         <preference name="WKWebViewOnly" value="true" />
-        <preference name="CordovaWebViewEngine" value="CDVWKWebView" />
-        <preference name="DisallowOverscroll" value="true" />
         <preference name="StatusBarOverlaysWebView" value="false" />
         <preference name="StatusBarBackgroundColor" value="#000000" />
+        <preference name="deployment-target" value="11.0" />
     </platform>
     
-    <plugin name="cordova-plugin-admob-free" source="npm" />
-    <plugin name="cordova-plugin-whitelist" source="npm" />
+    <engine name="ios" spec="7.0.1" />
+    <plugin name="cordova-plugin-admob-free" spec="0.26.0" />
+    <plugin name="cordova-plugin-whitelist" spec="1.3.5" />
 </widget>
