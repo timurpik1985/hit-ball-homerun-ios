@@ -9,30 +9,40 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup Node 20
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        
-    - name: Check Node version
+    - name: Force install Node 20
       run: |
+        curl -fsSL https://nodejs.org/dist/v20.18.0/node-v20.18.0-darwin-x64.tar.gz | tar -xz
+        sudo mv node-v20.18.0-darwin-x64 /usr/local/node20
+        echo "/usr/local/node20/bin" >> $GITHUB_PATH
+        export PATH="/usr/local/node20/bin:$PATH"
+        
+    - name: Verify Node 20
+      run: |
+        which node
         node --version
+        which npm
         npm --version
         
-    - name: Install Cordova 11
-      run: npm install -g cordova@11.1.0
-      
-    - name: Check structure
+    - name: Install compatible Cordova
+      run: |
+        export PATH="/usr/local/node20/bin:$PATH"
+        npm install -g cordova@12.0.0
+        
+    - name: Check files
       run: |
         ls -la
         ls -la www/
         
     - name: Add iOS platform
-      run: cordova platform add ios@6.3.0
-      
+      run: |
+        export PATH="/usr/local/node20/bin:$PATH"
+        cordova platform add ios@6.3.0
+        
     - name: Build iOS
-      run: cordova build ios --debug
-      
+      run: |
+        export PATH="/usr/local/node20/bin:$PATH"  
+        cordova build ios --debug
+        
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
