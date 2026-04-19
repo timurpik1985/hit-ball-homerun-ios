@@ -1,0 +1,32 @@
+workflows:
+  ios-workflow:
+    name: iOS App Build
+    max_build_duration: 60
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.timurpiker.hitballhomerun
+      vars:
+        BUNDLE_ID: "com.timurpiker.hitballhomerun"
+        APP_NAME: "Hit Ball Homerun Free Game Play"
+      node: 16
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install -g cordova@latest
+          cordova telemetry off
+      - name: Setup iOS platform
+        script: |
+          cordova platform add ios@latest
+          cordova plugin add cordova-plugin-admob-free@latest
+          cordova plugin add cordova-plugin-whitelist@latest
+      - name: Build for iOS
+        script: |
+          cordova build ios --release --device
+    artifacts:
+      - platforms/ios/build/device/*.ipa
+      - platforms/ios/build/device/*.app
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_app_store: false
