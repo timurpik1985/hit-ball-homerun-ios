@@ -9,25 +9,30 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Force Node 22
+      - name: Setup Node 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          # If you have an .nvmrc file in your repo, this ignores it
-          check-latest: true 
+          check-latest: true
+
+      - name: Force System to Use Node 22
+        run: |
+          brew install node@22
+          brew link --overwrite node@22
+          echo "$(brew --prefix node@22)/bin" >> $GITHUB_PATH
 
       - name: Install Cordova
-        # The --force flag ensures the install finishes despite engine warnings
         run: npm install -g cordova@latest --force
 
       - name: Build iOS
-        # This ENV block is the modern way to disable telemetry. 
-        # It achieves the same thing without crashing the build.
         env:
           CORDOVA_TELEMETRY_OPT_OUT: 1
         run: |
-          cordova platform add ios
-          cordova build ios
+          # Manually create the folder so Cordova doesn't ask to create it
+          mkdir -p ~/.cordova
+          # Add the platform and build
+          cordova platform add ios --non-interactive
+          cordova build ios --non-interactive
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
