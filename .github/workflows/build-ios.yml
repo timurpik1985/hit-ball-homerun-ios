@@ -1,0 +1,55 @@
+name: Build iOS App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Setup Node (FORCE correct version)
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Debug (verify Node is NOT 18)
+      - name: Verify environment
+        run: |
+          echo "PATH=$PATH"
+          which node
+          node -v
+          npm -v
+
+      # 4. Install project dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # 5. Install stable Cordova
+      - name: Install Cordova
+        run: npm install -g cordova@12
+
+      # 6. Disable telemetry (fix crash)
+      - name: Disable Cordova telemetry
+        run: |
+          mkdir -p ~/.cordova
+          echo '{ "telemetry": false }' > ~/.cordova/config.json
+
+      # 7. Build iOS app
+      - name: Build App
+        run: |
+          cordova platform add ios --non-interactive
+          cordova build ios --non-interactive
+
+      # 8. Upload build artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: platforms/ios/build/
