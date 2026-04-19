@@ -9,11 +9,13 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Use built-in Node 18 with old Cordova
+    - name: Check Node version
       run: |
         node --version
         npm --version
-        npm install -g cordova@10.0.0
+        
+    - name: Install old Cordova
+      run: npm install -g cordova@10.0.0
         
     - name: Check files
       run: |
