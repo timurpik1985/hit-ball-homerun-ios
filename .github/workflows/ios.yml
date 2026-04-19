@@ -13,10 +13,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Verify Node
+      - name: Verify Node (bash)
+        shell: bash
         run: |
           node -v
           npm -v
+          which node
 
       - name: Install dependencies
         run: npm install
