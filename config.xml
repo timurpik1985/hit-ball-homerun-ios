@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.yourname.hitballhomerun" version="1.0.0" xmlns="http://www.w3.org/ns/widgets">
+<widget id="com.timurpiker.hitballhomerun" version="1.0.0" xmlns="http://www.w3.org/ns/widgets">
     <name>Hit Ball Homerun Free Game Play</name>
     <description>The ultimate baseball hitting game with special ball unlocks!</description>
-    <author email="yourname@gmail.com" href="https://github.com/yourusername">Your Name</author>
+    <author email="timurpiker@gmail.com" href="https://github.com/timurpik1985">Timur Piker</author>
     
     <content src="index.html" />
     <access origin="*" />
