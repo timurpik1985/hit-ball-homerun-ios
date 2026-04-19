@@ -1,5 +1,4 @@
 name: Build iOS App
-
 on:
   workflow_dispatch:
 
@@ -10,41 +9,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Install Node 20
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      # 🔴 FORCE the correct Node into PATH
-      - name: Force correct Node
+      - name: Debug Node
         run: |
-          echo "Node before fix:"
-          node -v || true
-
-          export PATH="$RUNNER_TOOL_CACHE/node/20.*/x64/bin:$PATH"
-
-          echo "Node after fix:"
           which node
           node -v
-          npm -v
 
       - name: Install dependencies
         run: npm install
-
-      - name: Install Cordova (stable)
-        run: npm install -g cordova@12
 
       - name: Disable telemetry
         run: |
           mkdir -p ~/.cordova
           echo '{ "telemetry": false }' > ~/.cordova/config.json
 
-      - name: Build App
+      - name: Build App (forced Node 20)
         run: |
-          cordova platform add ios --non-interactive
-          cordova build ios --non-interactive
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ios-app
-          path: platforms/ios/build/
+          npx -p node@20 -p cordova@12 cordova platform add ios --non-interactive
+          npx -p node@20 -p cordova@12 cordova build ios --non-interactive
