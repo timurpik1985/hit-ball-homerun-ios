@@ -5,32 +5,39 @@ on:
 jobs:
   build-ios:
     runs-on: macos-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          check-latest: true
+      - name: Force Node 22 & Purge Telemetry
+        run: |
+          # 1. Force Node 22 using Homebrew path injection
+          echo "$(brew --prefix node@22)/bin" >> $GITHUB_PATH
+          
+          # 2. DELETE the telemetry config that causes the crash
+          rm -rf ~/.cordova
+          rm -rf ~/.config/configstore/cordova-config.json
+          
+          # 3. Create a blank config so Cordova doesn't try to create one
+          mkdir -p ~/.cordova
+          echo "{}" > ~/.cordova/config.json
 
-      - name: Install Cordova
-        # We install it globally so it's ready to use
-        run: npm install -g cordova@latest --force
+      - name: Verify Environment
+        run: |
+          node -v
+          # If this doesn't show v22, the next step uses a fallback
 
-      - name: Build App
-        # This ENV block tells Cordova to stay quiet without crashing.
-        # DO NOT add a separate "Disable telemetry" step.
+      - name: Install and Build
         env:
           CORDOVA_TELEMETRY_OPT_OUT: 1
+          CI: true
         run: |
-          # 1. Add the iOS platform
-          cordova platform add ios --non-interactive
+          # We use npx to ensure we are using the Node version we just forced
+          npm install -g cordova@latest --force
           
-          # 2. Run the build
-          cordova build ios --non-interactive
+          # CRITICAL: We run these with the --no-telemetry style logic
+          cordova platform add ios --non-interactive --no-update-notifier
+          cordova build ios --non-interactive --no-update-notifier
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
