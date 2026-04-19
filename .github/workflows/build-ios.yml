@@ -9,29 +9,30 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Purge Poisoned Config
+      - name: Hard Reset Environment
         run: |
-          # Manually delete the config files that are triggering the telemetry crash
+          # 1. Force remove the configuration stores that trigger the telemetry bug
           rm -rf ~/.cordova
           rm -rf ~/.config/configstore/cordova-config.json
-          # Create a clean directory
+          
+          # 2. Create a clean, silent config file
           mkdir -p ~/.cordova
           echo '{"telemetry": false}' > ~/.cordova/config.json
 
       - name: Install Compatible Cordova
-        # We are using 12.0.0 because it is the "Stable" path for Node 18 runners.
-        # It will work perfectly with your config.xml and index.html.
+        # We use 12.0.0 because it is natively compatible with Node 18.
+        # This prevents the 'Unsupported engine' warnings and the telemetry crash.
         run: npm install -g cordova@12.0.0 --force
 
-      - name: Build App
+      - name: Build iOS App
         env:
           CORDOVA_TELEMETRY_OPT_OUT: 1
           CI: true
         run: |
-          # Add the platform and build without any manual telemetry commands
+          # We run these as separate steps to ensure clarity in the logs
           cordova platform add ios --non-interactive
           cordova build ios --non-interactive
-          
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
