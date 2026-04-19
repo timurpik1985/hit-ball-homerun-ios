@@ -13,16 +13,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          # Forces GitHub to ignore any local version-lock files
+          # If you have an .nvmrc file in your repo, this ignores it
           check-latest: true 
 
       - name: Install Cordova
-        # --force bypasses the engine warnings so the build continues
+        # The --force flag ensures the install finishes despite engine warnings
         run: npm install -g cordova@latest --force
 
       - name: Build iOS
-        # This is the modern way to disable telemetry without using a command.
-        # It prevents the 'Cordova does not know telemetry' crash.
+        # This ENV block is the modern way to disable telemetry. 
+        # It achieves the same thing without crashing the build.
         env:
           CORDOVA_TELEMETRY_OPT_OUT: 1
         run: |
