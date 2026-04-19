@@ -9,25 +9,36 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          # This forces GitHub to ignore any local .nvmrc or .node-version files
-          always-auth: false 
+      - name: Force Node 22 (Manual Path)
+        run: |
+          # Use Homebrew to get the right version
+          brew install node@22
+          brew link --overwrite node@22
+          # Force the terminal to see Node 22 first
+          echo "$(brew --prefix node@22)/bin" >> $GITHUB_PATH
+          
+      - name: Verify Environment
+        run: |
+          echo "Node Version:"
+          node -v
+          echo "NPM Version:"
+          npm -v
 
       - name: Install Cordova
-        # We use --force to tell npm to stop worrying about the engine warnings
+        # The --force flag skips those 'Unsupported engine' warnings
         run: npm install -g cordova@latest --force
 
-      - name: Build iOS
-        # Instead of running a 'telemetry' command, we use this Environment Variable.
-        # It tells Cordova to be quiet without crashing the build.
+      - name: Build App
+        # These environment variables stop Cordova from asking about telemetry
         env:
           CORDOVA_TELEMETRY_OPT_OUT: 1
+          CI: true
         run: |
-          cordova platform add ios
-          cordova build ios
+          # We check the version to make sure it's 13.x
+          cordova --version
+          # Add platform and build with the non-interactive flag
+          cordova platform add ios --non-interactive
+          cordova build ios --non-interactive
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
