@@ -1,38 +1,14 @@
-name: Build iOS App
-on:
-  workflow_dispatch:
+steps:
+  - uses: actions/checkout@v4
 
-jobs:
-  build-ios:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 20
 
-      - name: Force Node 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          check-latest: true
+  - run: npm install
 
-      - name: Install Cordova
-        # --force handles the engine warnings; the install IS working
-        run: npm install -g cordova@latest --force
+  - run: npm install -g cordova
 
-      - name: Build iOS
-        # This ENV section is the ONLY way to handle telemetry now.
-        # DO NOT run a 'cordova telemetry' command in the 'run' section.
-        env:
-          CORDOVA_TELEMETRY_OPT_OUT: 1
-        run: |
-          # 1. Clean any old platforms
-          rm -rf platforms/ios
-          # 2. Add and Build
-          cordova platform add ios --non-interactive
-          cordova build ios --non-interactive
-          
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-app
-          path: platforms/ios/build/
+  - run: cordova telemetry off   # or remove entirely
+
+  - run: cordova build
