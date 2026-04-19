@@ -4,32 +4,44 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-12
+    # 'macos-latest' ensures you have the most up-to-date build tools
+    runs-on: macos-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout Code
+      uses: actions/checkout@v4
     
-    - name: Check Node version
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Using 20 as it's the current stable LTS
+
+    - name: Check Environment
       run: |
         node --version
         npm --version
         
-    - name: Install old Cordova
-      run: npm install -g cordova@10.0.0
+    - name: Install Cordova
+      # I suggest trying the latest or a more recent version like 12
+      # unless your code strictly requires 10.0.0
+      run: npm install -g cordova@latest
         
     - name: Check files
       run: |
         ls -la
-        ls -la www/
+        ls -la www/ || echo "www folder not found!"
         
     - name: Add iOS platform
-      run: cordova platform add ios@5.1.1
+      # Note: ios@5.1.1 is very old (2019). 
+      # Modern Xcode (on macos-latest) usually requires ios@7.x.x
+      run: cordova platform add ios
         
     - name: Build iOS
-      run: cordova build ios
+      run: cordova build ios --device
         
-    - name: Upload
-      uses: actions/upload-artifact@v3
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
       with:
         name: ios-app
-        path: platforms/ios/build/
+        # Note: The build path often changes depending on Cordova version
+        path: platforms/ios/build/device/
