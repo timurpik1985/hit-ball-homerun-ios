@@ -8,48 +8,43 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      # 1. Checkout code
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 2. Setup Node (FORCE correct version)
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # Install Node 20
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      # 3. Debug (verify Node is NOT 18)
-      - name: Verify environment
+      # 🔴 FORCE the correct Node into PATH
+      - name: Force correct Node
         run: |
-          echo "PATH=$PATH"
+          echo "Node before fix:"
+          node -v || true
+
+          export PATH="$RUNNER_TOOL_CACHE/node/20.*/x64/bin:$PATH"
+
+          echo "Node after fix:"
           which node
           node -v
           npm -v
 
-      # 4. Install project dependencies
       - name: Install dependencies
         run: npm install
 
-      # 5. Install stable Cordova
-      - name: Install Cordova
+      - name: Install Cordova (stable)
         run: npm install -g cordova@12
 
-      # 6. Disable telemetry (fix crash)
-      - name: Disable Cordova telemetry
+      - name: Disable telemetry
         run: |
           mkdir -p ~/.cordova
           echo '{ "telemetry": false }' > ~/.cordova/config.json
 
-      # 7. Build iOS app
       - name: Build App
         run: |
           cordova platform add ios --non-interactive
           cordova build ios --non-interactive
 
-      # 8. Upload build artifact
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: ios-app
           path: platforms/ios/build/
