@@ -6,22 +6,32 @@ jobs:
   build-ios:
     runs-on: macos-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Force Node 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.9.0 # Specific version to prevent auto-defaults
-          cache: 'npm'
-
-      - name: Verify Version
-        run: node -v # This MUST print v22.x.x in the logs
-
-      - name: Install Cordova
-        run: npm install -g cordova@latest
-
-      - name: Build
+      - name: Force Install Node 22
         run: |
-          cordova platform add ios
-          cordova build ios
+          brew install node@22
+          brew link --overwrite node@22
+          echo "/usr/local/opt/node@22/bin" >> $GITHUB_PATH
+          
+      - name: Verify Environment
+        run: |
+          node -v
+          npm -v
+
+      - name: Install and Config Cordova
+        run: |
+          npm install -g cordova@latest
+          cordova telemetry off
+          
+      - name: Add Platform and Build
+        run: |
+          cordova platform add ios --verbose
+          cordova build ios --verbose
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: platforms/ios/build/
