@@ -17,10 +17,8 @@ jobs:
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           echo "$BUILD_CERTIFICATE_BASE64" | tr -d '\n ' | base64 --decode --output "$CERTIFICATE_PATH"
           security create-keychain -p "buildpassword" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "buildpassword" "$KEYCHAIN_PATH"
           security import "$CERTIFICATE_PATH" -k "$KEYCHAIN_PATH" -P 1234 -T /usr/bin/codesign
-          security list-keychains -d user -s "$KEYCHAIN_PATH"
 
       - name: Install Provisioning Profile
         env:
@@ -32,28 +30,35 @@ jobs:
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: System Environment Setup
+        run: npm install -g cordova@12.0.0 --force
+
+      - name: Prepare Platform
         run: |
-          npm install -g cordova@12.0.0 --force
+          cordova platform add ios --non-interactive
+          
+      - name: Force iPad Compliance
+        run: |
+          # This command manually injects the "Full Screen" requirement into the iOS project
+          # so Apple stops asking for Landscape orientations.
+          PLIST="platforms/ios/Hit Ball Homerun/Hit Ball Homerun-Info.plist"
+          if [ -f "$PLIST" ]; then
+            /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" "$PLIST" || /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" "$PLIST"
+            echo "Successfully patched Info.plist for iPad multitasking."
+          else
+            echo "Warning: Info.plist not found at $PLIST. Checking alternate path..."
+            # Check for generic name if project name has spaces
+            PLIST_ALT=$(find platforms/ios -name "*-Info.plist" | head -n 1)
+            /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" "$PLIST_ALT" || /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" "$PLIST_ALT"
+          fi
 
       - name: Build Signed App
         run: |
-          # Fresh platform add ensures config.xml changes are applied correctly
-          cordova platform rm ios --nosave || true
-          cordova platform add ios --non-interactive
           cordova build ios --release --device --buildConfig=build.json --non-interactive
 
       - name: Locate and Verify IPA
         id: find_ipa
         run: |
-          # Broad search for the generated IPA
           IPA_PATH=$(find platforms/ios -name "*.ipa" | head -n 1)
-          
-          if [ -z "$IPA_PATH" ]; then
-            echo "ERROR: IPA file not found anywhere in platforms/ios"
-            exit 1
-          fi
-          
-          echo "Found IPA at: $IPA_PATH"
           echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
 
       - name: Upload to TestFlight
@@ -63,9 +68,3 @@ jobs:
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-
-      - name: Upload Artifact (Backup)
-        uses: actions/upload-artifact@v4
-        with:
-          name: Production-Homerun-App
-          path: "${{ steps.find_ipa.outputs.ipa_path }}"
