@@ -38,22 +38,28 @@ jobs:
       - name: Build Signed App
         run: |
           cordova platform add ios --non-interactive
-          # Using the device flag to ensure a real IPA is generated
           cordova build ios --release --device --buildConfig=build.json --non-interactive
 
-      - name: Locate IPA
+      - name: Locate and Verify IPA
         id: find_ipa
         run: |
-          # This search handles spaces in the name and saves the exact location
-          IPA_FILE=$(find platforms/ios/build/device -name "*.ipa" | head -n 1)
-          echo "Found IPA at: $IPA_FILE"
-          echo "path=$IPA_FILE" >> $GITHUB_OUTPUT
+          # Search everywhere in the platforms folder for any .ipa file
+          IPA_PATH=$(find platforms/ios -name "*.ipa" | head -n 1)
+          
+          if [ -z "$IPA_PATH" ]; then
+            echo "ERROR: IPA file not found anywhere in platforms/ios"
+            exit 1
+          fi
+          
+          echo "Found IPA at: $IPA_PATH"
+          # This saves the path for the next step
+          echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          # The quotes here are critical for names with spaces
-          app-path: "${{ steps.find_ipa.outputs.path }}"
+          # We use the verified path from the previous step
+          app-path: "${{ steps.find_ipa.outputs.ipa_path }}"
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
@@ -62,4 +68,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Production-Homerun-App
-          path: "${{ steps.find_ipa.outputs.path }}"
+          path: "${{ steps.find_ipa.outputs.ipa_path }}"
