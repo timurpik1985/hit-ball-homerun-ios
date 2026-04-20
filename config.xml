@@ -1,42 +1,28 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.timurpiker.homerungame" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.timurpiker.homerungame" version="1.0.2" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Hit Ball Homerun</name>
-    <description>
-        An exciting baseball hitting game.
-    </description>
-    <author email="timurpiker@gmail.com" href="https://github.com/timurpik1985">
+    <description>A simple baseball homerun game.</description>
+    <author email="dev@example.com" href="http://example.com">
         Timur Piker
     </author>
     
     <content src="index.html" />
-    
     <access origin="*" />
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
-    
-    <preference name="AllowInlineMediaPlayback" value="false" />
-    <preference name="BackupWebStorage" value="cloud" />
-    <preference name="DisallowOverscroll" value="true" />
-    <preference name="EnableViewportScale" value="false" />
-    <preference name="KeyboardDisplayRequiresUserAction" value="true" />
-    <preference name="MediaPlaybackRequiresUserAction" value="false" />
-    <preference name="SuppressesIncrementalRendering" value="false" />
-    <preference name="SuppressesLongPressGesture" value="false" />
-    <preference name="Suppresses3DTouchGesture" value="false" />
-    <preference name="GapBetweenPages" value="0" />
-    <preference name="PageLength" value="0" />
-    <preference name="PaginationStyle" value="unpaged" />
-    <preference name="PaginationMode" value="unpaged" />
-    <preference name="UIWebViewDecelerationSpeed" value="normal" />
-    
-    <preference name="orientation" value="portrait" />
-    <preference name="target-device" value="universal" />
-    <preference name="deployment-target" value="13.0" />
 
     <platform name="ios">
         <allow-intent href="itms:*" />
         <allow-intent href="itms-apps:*" />
         
+        <preference name="UIRequiresFullScreen" value="true" />
+        
+        <preference name="Orientation" value="portrait" />
+        <preference name="UISupportedInterfaceOrientations" value="UIInterfaceOrientationPortrait,UIInterfaceOrientationPortraitUpsideDown" />
+        
         <preference name="deployment-target" value="13.0" />
     </platform>
+
+    <preference name="Fullscreen" value="true" />
+    <preference name="DisallowOverscroll" value="true" />
 </widget>
