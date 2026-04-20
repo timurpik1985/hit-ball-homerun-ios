@@ -37,13 +37,15 @@ jobs:
 
       - name: Build Signed App
         run: |
+          # Fresh platform add ensures config.xml changes are applied correctly
+          cordova platform rm ios --nosave || true
           cordova platform add ios --non-interactive
           cordova build ios --release --device --buildConfig=build.json --non-interactive
 
       - name: Locate and Verify IPA
         id: find_ipa
         run: |
-          # Search everywhere in the platforms folder for any .ipa file
+          # Broad search for the generated IPA
           IPA_PATH=$(find platforms/ios -name "*.ipa" | head -n 1)
           
           if [ -z "$IPA_PATH" ]; then
@@ -52,13 +54,11 @@ jobs:
           fi
           
           echo "Found IPA at: $IPA_PATH"
-          # This saves the path for the next step
           echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          # We use the verified path from the previous step
           app-path: "${{ steps.find_ipa.outputs.ipa_path }}"
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
