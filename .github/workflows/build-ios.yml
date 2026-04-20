@@ -17,6 +17,7 @@ jobs:
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           echo "$BUILD_CERTIFICATE_BASE64" | tr -d '\n ' | base64 --decode --output "$CERTIFICATE_PATH"
           security create-keychain -p "buildpassword" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "buildpassword" "$KEYCHAIN_PATH"
           security import "$CERTIFICATE_PATH" -k "$KEYCHAIN_PATH" -P 1234 -T /usr/bin/codesign
           security list-keychains -d user -s "$KEYCHAIN_PATH"
@@ -37,19 +38,22 @@ jobs:
       - name: Build Signed App
         run: |
           cordova platform add ios --non-interactive
+          # Using the device flag to ensure a real IPA is generated
           cordova build ios --release --device --buildConfig=build.json --non-interactive
 
       - name: Locate IPA
         id: find_ipa
         run: |
-          # Finds the IPA regardless of the exact filename
-          IPA_PATH=$(find platforms/ios/build/device -name "*.ipa" | head -n 1)
-          echo "path=$IPA_PATH" >> $GITHUB_OUTPUT
+          # This search handles spaces in the name and saves the exact location
+          IPA_FILE=$(find platforms/ios/build/device -name "*.ipa" | head -n 1)
+          echo "Found IPA at: $IPA_FILE"
+          echo "path=$IPA_FILE" >> $GITHUB_OUTPUT
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          app-path: ${{ steps.find_ipa.outputs.path }}
+          # The quotes here are critical for names with spaces
+          app-path: "${{ steps.find_ipa.outputs.path }}"
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
@@ -58,4 +62,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Production-Homerun-App
-          path: ${{ steps.find_ipa.outputs.path }}
+          path: "${{ steps.find_ipa.outputs.path }}"
