@@ -19,7 +19,6 @@ jobs:
           security create-keychain -p "buildpassword" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "buildpassword" "$KEYCHAIN_PATH"
-          # Using the 1234 test password we set up earlier
           security import "$CERTIFICATE_PATH" -k "$KEYCHAIN_PATH" -P 1234 -T /usr/bin/codesign
           security list-keychains -d user -s "$KEYCHAIN_PATH"
 
@@ -44,11 +43,15 @@ jobs:
           CORDOVA_TELEMETRY_OPT_OUT: 1
         run: |
           cordova platform add ios --non-interactive
-          # Using the build.json file to provide the Team ID and Signing Identity
           cordova build ios --release --device --buildConfig=build.json --non-interactive
 
       - name: Upload Signed IPA
         uses: actions/upload-artifact@v4
         with:
           name: Production-Homerun-App
-          path: platforms/ios/build/device/*.ipa
+          # This updated path searches all possible build folders
+          path: |
+            platforms/ios/build/device/*.ipa
+            platforms/ios/build/Release-iphoneos/*.ipa
+            platforms/ios/remote/*.ipa
+          if-no-files-found: error
