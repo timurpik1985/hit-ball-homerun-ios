@@ -1,6 +1,6 @@
-name: Build iOS App
+name: Build and Sign iOS App
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows you to run it manually
 
 jobs:
   build-ios:
@@ -9,33 +9,50 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: System Hard Reset
+      - name: Install Apple Certificate
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
         run: |
-          # Delete any hidden config folders that cause the 'telemetry' crash
+          # 1. Create a temporary path for the certificate
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          # 2. Decode the secret back into a real file
+          echo $BUILD_CERTIFICATE_BASE64 | base64 --decode --output $CERTIFICATE_PATH
+          # 3. Create a temporary keychain to hold the certificate during the build
+          security create-keychain -p "" build.keychain
+          security import $CERTIFICATE_PATH -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -d user -s build.keychain
+
+      - name: Install Provisioning Profile
+        env:
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+        run: |
+          # 1. Create temporary path
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          # 2. Decode the profile
+          echo $BUILD_PROVISION_PROFILE_BASE64 | base64 --decode --output $PP_PATH
+          # 3. Put it where Apple expects it
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: System Hard Reset & Setup
+        run: |
           rm -rf ~/.cordova
-          rm -rf ~/.config/configstore/cordova-config.json
-          # Create a fresh, empty config so Cordova doesn't try to prompt you
           mkdir -p ~/.cordova
           echo '{"telemetry": false}' > ~/.cordova/config.json
+          npm install -g cordova@12.0.0 --force
 
-      - name: Install Stable Cordova
-        # We use 12.0.0 because it is the most stable version for Node 18.
-        # This avoids the 'Cordova does not know telemetry' error entirely.
-        run: npm install -g cordova@12.0.0 --force
-
-      - name: Build App
-        # These environment variables tell Cordova to stay silent
+      - name: Build Signed App
         env:
           CORDOVA_TELEMETRY_OPT_OUT: 1
-          CI: true
         run: |
-          # 1. Add the iOS platform
           cordova platform add ios --non-interactive
-          # 2. Run the build
-          cordova build ios --non-interactive
+          # This command uses your certificate and profile to sign the app
+          cordova build ios --release --device --codeSignIdentity="Apple Distribution" --non-interactive
 
-      - name: Upload Artifact
+      - name: Upload Signed IPA
         uses: actions/upload-artifact@v4
         with:
-          name: ios-app
-          path: platforms/ios/build/
+          name: Production-Homerun-App
+          # This looks for the final .ipa file created by the build
+          path: platforms/ios/build/device/*.ipa
