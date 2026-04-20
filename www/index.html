@@ -4,25 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Hit Ball Homerun Free Game Play</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#030814;}
-body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;}
+body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  box-sizing: border-box;
+}
 #app{display:flex;flex-direction:column;width:100%;height:100%;background:#030814;overflow:hidden;}
 #hud{display:flex;gap:4px;padding:8px;flex-shrink:0;background:rgba(0,0,0,0.4);}
 #stadbtn{position:absolute;bottom:8px;left:8px;background:rgba(10,20,50,0.85);border:1px solid rgba(251,191,36,0.5);border-radius:8px;padding:4px 10px;color:#fbbf24;font-size:10px;font-weight:700;-webkit-appearance:none;cursor:pointer;z-index:8;}
 #sndbtn{position:absolute;bottom:8px;right:8px;background:rgba(10,20,50,0.85);border:1px solid rgba(100,200,255,0.4);border-radius:8px;padding:3px 8px;color:#e2e8f0;font-size:14px;font-weight:700;-webkit-appearance:none;cursor:pointer;z-index:8;line-height:1;}
 #combolbl{position:absolute;top:50px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:900;color:#fbbf24;pointer-events:none;opacity:0;transition:opacity 0.3s,transform 0.15s;text-shadow:0 0 12px currentColor,0 1px 6px rgba(0,0,0,0.95);z-index:6;white-space:nowrap;}
-#unlockstrip{display:flex;gap:8px;padding:8px 12px 6px;flex-shrink:0;background:rgba(0,0,0,0.55);border-bottom:1px solid rgba(100,200,255,0.1);}
-.ustrip-item{flex:1;display:flex;flex-direction:column;gap:3px;}
-.ustrip-top{display:flex;justify-content:space-between;align-items:center;}
-.ustrip-name{font-size:10.5px;font-weight:700;letter-spacing:0.5px;}
-.ustrip-left{font-size:10.5px;font-weight:700;opacity:0.85;}
-.ustrip-track{height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;}
-.ustrip-fill{height:100%;border-radius:4px;transition:width 0.5s;}
-.ustrip-done{font-size:10.5px;font-weight:700;color:#4ade80;text-align:center;}
+#unlockstrip{display:flex;gap:8px;padding:10px 12px 10px;flex-shrink:0;background:rgba(0,0,0,0.85);border-bottom:1px solid rgba(100,200,255,0.2);align-items:stretch;}
+.ustrip-item{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;min-height:60px;}
+.ustrip-top{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;min-height:42px;justify-content:flex-start;}
+.ustrip-name{font-size:13px;font-weight:900;letter-spacing:1px;text-shadow:0 1px 2px rgba(0,0,0,0.8);line-height:1.2;}
+.ustrip-left{font-size:11px;font-weight:700;opacity:1;white-space:normal;max-width:100%;text-shadow:0 1px 2px rgba(0,0,0,0.8);line-height:1.3;display:block;}
+.ustrip-track{height:10px;background:rgba(255,255,255,0.15);border-radius:5px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);margin-top:4px;}
+.ustrip-fill{height:100%;border-radius:5px;transition:width 0.5s;box-shadow:0 0 8px rgba(255,255,255,0.3);}
+.ustrip-done{font-size:12px;font-weight:900;color:#4ade80;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,0.8);line-height:1.3;}
 .stat{flex:1;background:rgba(10,20,50,0.95);border-radius:10px;padding:4px 6px;text-align:center;border:1.5px solid rgba(100,200,255,0.35);}
 .slabel{display:block;font-size:8px;color:#60a5fa;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
 .sval{display:block;font-size:15px;font-weight:700;color:#fff;}
@@ -105,12 +111,12 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;}
       <div class="ustrip-track"><div class="ustrip-fill" id="usfill-diamond" style="background:linear-gradient(90deg,#0369a1,#bae6fd);width:0%"></div></div>
     </div>
   </div>
-<div id="stagebar" style="background:rgba(0,0,0,0.7);padding:4px 10px;text-align:center;border-bottom:1px solid rgba(100,200,255,0.2);flex-shrink:0;">
-  <span id="stagelbl" style="font-size:11px;font-weight:700;color:#60a5fa;letter-spacing:1px;">STAGE 1</span>
-  <span style="color:#475569;margin:0 6px;">|</span>
-  <span id="stagegoal" style="font-size:11px;color:#e2e8f0;">Hit 100m</span>
-  <span style="color:#475569;margin:0 6px;">|</span>
-  <span id="stageprog" style="font-size:11px;color:#fbbf24;">0/1</span>
+<div id="stagebar" style="background:rgba(0,0,0,0.85);padding:6px 10px;text-align:center;border-bottom:1px solid rgba(100,200,255,0.3);flex-shrink:0;">
+  <span id="stagelbl" style="font-size:13px;font-weight:900;color:#60a5fa;letter-spacing:1.5px;text-shadow:0 1px 2px rgba(0,0,0,0.8);">STAGE 1</span>
+  <span style="color:#475569;margin:0 8px;">|</span>
+  <span id="stagegoal" style="font-size:13px;color:#e2e8f0;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,0.8);">Hit 100m</span>
+  <span style="color:#475569;margin:0 8px;">|</span>
+  <span id="stageprog" style="font-size:13px;color:#fbbf24;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,0.8);">0/1</span>
 </div>
 <div id="hud">
     <div class="stat"><span class="slabel">LAST</span><span class="sval" id="sdist">0 m</span></div>
@@ -2218,11 +2224,12 @@ function updateUnlockStrip() {
       fill.style.width = Math.floor(pct * 100) + '%';
       var rem = t.at - totalRange;
       var adsNeeded = Math.max(0, t.videos - videoAdsWatched);
+      var distText = rem >= 1000 ? Math.round(rem/1000)+'km left' : rem+'m left';
       if (adsNeeded > 0) {
-        var distText = rem >= 1000 ? Math.round(rem/1000)+'km' : rem+'m';
-        left.innerHTML = distText + ' left<br><small style="color:#fbbf24;">or ' + adsNeeded + ' video ads</small>';
+        var adText = adsNeeded === 1 ? 'or 1 video ad' : 'or ' + adsNeeded + ' video ads';
+        left.innerHTML = distText + '<br><small style="color:#fbbf24;font-size:10px;">' + adText + '</small>';
       } else {
-        left.textContent = rem >= 1000 ? Math.round(rem/1000)+'km left' : rem+'m left';
+        left.innerHTML = distText + '<br><small style="color:#4ade80;font-size:10px;">ads watched!</small>';
       }
     }
   }
