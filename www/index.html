@@ -65,11 +65,12 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
 #nrow select{padding:4px;border-radius:8px;border:1px solid #7c3aed;background:#0a1020;color:#fff;font-size:10px;}
 #savebtn{padding:5px 10px;border-radius:8px;background:#7c3aed;border:none;color:#fff;font-size:11px;font-weight:700;}
 #lbscroll{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;margin-bottom:5px;}
-.lbrow{display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:7px;margin-bottom:2px;background:rgba(255,255,255,0.04);}
-.lbrank{font-size:11px;font-weight:700;min-width:24px;text-align:center;color:#fbbf24;}
-.lbname{flex:1;font-size:10px;color:#e2e8f0;font-weight:700;}
-.lbdist{font-size:11px;font-weight:700;color:#4ade80;}
-.lbyou{background:rgba(124,58,237,0.2);border:1px solid #7c3aed;}
+.lbrow{display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:7px;margin-bottom:3px;background:rgba(255,255,255,1);border:1px solid rgba(0,0,0,0.08);}
+.lbrank{font-size:12px;font-weight:900;min-width:28px;text-align:center;color:#d97706;background:linear-gradient(135deg,#fbbf24,#f59e0b);padding:3px 0;border-radius:6px;}
+.lbname{flex:1;font-size:11px;color:#1f2937;font-weight:700;}
+.lbdist{font-size:12px;font-weight:900;color:#059669;}
+.lbyou{background:linear-gradient(90deg,rgba(124,58,237,0.15),rgba(167,139,250,0.1));border:2px solid #7c3aed;}
+.lbyou .lbname{color:#7c3aed;}
 #backbtn{width:100%;padding:10px;border-radius:10px;background:#16a34a;border:none;color:#fff;font-size:13px;font-weight:700;}
 .urow{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px;}
 .uprog-wrap{margin-bottom:8px;}
@@ -173,6 +174,7 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
       </div>
     </div>
     <div id="modalbg">
+      <button onclick="closeLB()" style="position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:#dc2626;border:2px solid #fff;color:#fff;font-size:18px;font-weight:900;cursor:pointer;z-index:100;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.5);">×</button>
       <h2>Hall of Fame</h2>
       <div id="nrow"><input id="pname" placeholder="Your name" maxlength="16"/><button id="savebtn" onclick="saveScore()">Save</button></div>
       <div style="margin-bottom:6px"><div style="color:#c084fc;font-weight:700;font-size:9px;margin-bottom:2px;">BALLS UNLOCKED</div><div class="urow" id="uchips"></div></div>
@@ -199,23 +201,23 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
       </div>
       <div class="tabs"><div class="tab active" onclick="swTab('best')">Best Hit</div><div class="tab" onclick="swTab('total')">Total</div><div class="tab" onclick="swTab('hits')">Most Hits</div></div>
       
-      <!-- WATCH ADS SECTION -->
-      <div style="background:rgba(251,191,36,0.1); border:2px solid #fbbf24; border-radius:12px; 
-                  padding:12px; margin-bottom:8px; text-align:center;">
-        <div style="color:#fbbf24; font-weight:700; font-size:11px; margin-bottom:6px;">
-          📺 UNLOCK SPECIAL BALLS WITH VIDEO ADS
-        </div>
-        <div style="font-size:10px; color:#e2e8f0; margin-bottom:8px;">
-          Videos watched: <span style="color:#4ade80; font-weight:700;" id="videoCount">0</span>/3
+      <!-- WATCH ADS SECTION - COMPACT -->
+      <div style="background:rgba(251,191,36,0.15); border:1.5px solid #fbbf24; border-radius:10px; 
+                  padding:8px; margin-bottom:6px; text-align:center;">
+        <div style="color:#fbbf24; font-weight:700; font-size:10px; margin-bottom:4px;">
+          📺 UNLOCK SPECIAL BALLS | Videos: <span style="color:#4ade80;" id="videoCount">0</span>/3
         </div>
         <button onclick="showVideoAdModal()" id="watchAdsBtn"
                 style="background:linear-gradient(45deg,#16a34a,#22c55e); border:none; color:white; 
-                       padding:6px 12px; font-size:11px; font-weight:700; border-radius:8px; cursor:pointer;">
+                       padding:5px 14px; font-size:10px; font-weight:700; border-radius:6px; cursor:pointer;">
           🎬 Watch Video Ad
         </button>
       </div>
       
-      <div id="lbscroll"><div id="lblist"></div></div>
+      <div style="background:rgba(255,255,255,0.98); border-radius:12px; padding:10px; margin-bottom:8px; flex:1; overflow:hidden; display:flex; flex-direction:column; min-height:200px;">
+        <div style="color:#7c3aed; font-weight:900; font-size:11px; margin-bottom:8px; text-align:center; letter-spacing:1px;">🏆 RANKINGS 🏆</div>
+        <div id="lbscroll" style="flex:1; overflow-y:auto; background:rgba(243,244,246,1); border-radius:8px; padding:6px;"><div id="lblist"></div></div>
+      </div>
       <button id="backbtn" onclick="closeLB()">Back to Game</button>
     </div>
   </div>
