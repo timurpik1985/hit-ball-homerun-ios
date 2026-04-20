@@ -1,0 +1,10 @@
+{
+    "ios": {
+        "release": {
+            "codeSignIdentity": "Apple Distribution",
+            "developmentTeam": "4MJJM2RJTP",
+            "packageType": "app-store",
+            "provisioningProfile": "Homerun_App_Store_Profile"
+        }
+    }
+}
