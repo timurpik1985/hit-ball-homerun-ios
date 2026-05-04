@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.timurpiker.homerungame" version="1.0.14" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.timurpiker.homerungame" version="1.0.15" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Hit Ball Homerun Free Play</name>
     <description>The ultimate baseball hitting game! Flick to hit amazing home runs through space. Unlock Silver, Gold &amp; Diamond balls as you journey from the stadium to the cosmos.</description>
     <author email="timurpiker@gmail.com" href="https://github.com/timurpik1985">Timur Piker</author>
-    
+
     <content src="index.html" />
     <access origin="*" />
     <allow-intent href="http://*/*" />
@@ -12,63 +12,66 @@
     <allow-intent href="sms:*" />
     <allow-intent href="mailto:*" />
     <allow-intent href="geo:*" />
-    
+
     <preference name="orientation" value="portrait" />
     <preference name="Fullscreen" value="true" />
     <preference name="DisallowOverscroll" value="true" />
     <preference name="BackupWebStorage" value="none" />
-    
+
     <platform name="ios">
-        <!-- iOS Version Requirements -->
         <preference name="deployment-target" value="13.0" />
         <preference name="WKWebViewOnly" value="true" />
         <preference name="CordovaWebViewEngine" value="CDVWKWebView" />
-        
-        <!-- UI Preferences -->
+
         <preference name="StatusBarOverlaysWebView" value="false" />
         <preference name="StatusBarBackgroundColor" value="#000000" />
         <preference name="StatusBarStyle" value="lightcontent" />
-        
-        <!-- iPad Compliance -->
         <preference name="target-device" value="universal" />
-        
-        <!-- App Icon -->
+
         <icon src="res/ios/icon.png" />
-        
-        <!-- Info.plist Customizations -->
+
         <edit-config file="*-Info.plist" mode="merge" target="NSAppTransportSecurity">
             <dict>
                 <key>NSAllowsArbitraryLoads</key>
                 <true/>
             </dict>
         </edit-config>
-        
+
         <edit-config file="*-Info.plist" mode="merge" target="UIRequiresFullScreen">
             <true/>
         </edit-config>
-        
+
         <edit-config file="*-Info.plist" mode="merge" target="UISupportedInterfaceOrientations">
             <array>
                 <string>UIInterfaceOrientationPortrait</string>
             </array>
         </edit-config>
-        
+
         <edit-config file="*-Info.plist" mode="merge" target="UISupportedInterfaceOrientations~ipad">
             <array>
                 <string>UIInterfaceOrientationPortrait</string>
                 <string>UIInterfaceOrientationPortraitUpsideDown</string>
             </array>
         </edit-config>
-        
-        <!-- Privacy descriptions (required for App Store) -->
+
         <edit-config file="*-Info.plist" mode="merge" target="NSUserTrackingUsageDescription">
             <string>This allows us to show you personalized ads to support the free version of the game.</string>
         </edit-config>
+
+        <!-- Required by Google Mobile Ads SDK. This is Google's official TEST iOS App ID for TestFlight/debug builds. -->
+        <!-- BEFORE APP STORE REVIEW / PRODUCTION: replace with your real AdMob iOS App ID, format ca-app-pub-xxx~yyy. -->
+        <edit-config file="*-Info.plist" mode="merge" target="GADApplicationIdentifier">
+            <string>ca-app-pub-3940256099942544~1458002511</string>
+        </edit-config>
     </platform>
-    
-    <!-- Plugins -->
+
     <plugin name="cordova-plugin-whitelist" source="npm" />
     <plugin name="cordova-plugin-wkwebview-engine" source="npm" />
     <plugin name="cordova-plugin-statusbar" source="npm" />
-    
+
+    <!-- Required for TestFlight rewarded ads. Uses Google's official TEST iOS App ID here. -->
+    <!-- BEFORE APP STORE REVIEW / PRODUCTION: replace APP_ID_IOS with your real AdMob iOS App ID. -->
+    <plugin name="admob-plus-cordova" source="npm">
+        <variable name="APP_ID_IOS" value="ca-app-pub-3940256099942544~1458002511" />
+    </plugin>
 </widget>
