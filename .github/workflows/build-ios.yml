@@ -126,13 +126,11 @@ jobs:
 
           echo "Patching project: $PBXPROJ"
 
-          # Force all generated Xcode build configs to safer Swift settings.
           perl -0pi -e 's/SWIFT_OPTIMIZATION_LEVEL = "-O";/SWIFT_OPTIMIZATION_LEVEL = "-Onone";/g' "$PBXPROJ"
           perl -0pi -e 's/SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";/SWIFT_OPTIMIZATION_LEVEL = "-Onone";/g' "$PBXPROJ"
           perl -0pi -e 's/SWIFT_COMPILATION_MODE = wholemodule;/SWIFT_COMPILATION_MODE = singlefile;/g' "$PBXPROJ"
           perl -0pi -e 's/ONLY_ACTIVE_ARCH = NO;/ONLY_ACTIVE_ARCH = YES;/g' "$PBXPROJ"
 
-          # Some CordovaLib targets default to iOS 11. Raise to 13 to match the app and reduce Xcode warnings.
           perl -0pi -e 's/IPHONEOS_DEPLOYMENT_TARGET = 11\.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' "$PBXPROJ"
           perl -0pi -e 's/IPHONEOS_DEPLOYMENT_TARGET = 12\.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' "$PBXPROJ"
 
@@ -161,6 +159,8 @@ jobs:
       - name: Build Signed App
         run: |
           set -o pipefail
+          touch "$RUNNER_TEMP/cordova-build.log"
+
           cordova build ios --release --device --buildConfig=build.json --non-interactive \
             --buildFlag="SWIFT_OPTIMIZATION_LEVEL=-Onone" \
             --buildFlag="SWIFT_COMPILATION_MODE=singlefile" \
