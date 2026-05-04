@@ -1051,16 +1051,18 @@ function skipVideoAd() {
   modal.style.display = 'none';
 }
 
-// ADMOB INTEGRATION SYSTEM - TestFlight ad-test version
-// Uses Google official iOS TEST IDs so TestFlight can show ads safely.
-// BEFORE APP STORE REVIEW / PRODUCTION: replace both IDs with your real AdMob IDs.
+// ADMOB INTEGRATION SYSTEM - production IDs
 // App ID format uses ~ and belongs in config.xml too.
-// Rewarded Unit ID format uses / and is used here in JavaScript.
-var ADMOB_APP_ID = 'ca-app-pub-3940256099942544~1458002511';
-var ADMOB_REWARDED_ID = 'ca-app-pub-3940256099942544/1712485313';
+// Rewarded/Interstitial Ad Unit IDs use / and are used here in JavaScript.
+var ADMOB_APP_ID = 'ca-app-pub-1629985022407089~9813154293';
+var ADMOB_REWARDED_ID = 'ca-app-pub-1629985022407089/9323245887';
+var ADMOB_INTERSTITIAL_ID = 'ca-app-pub-1629985022407089/5275143485';
 var admobInitialized = false;
 var rewardedAdReady = false;
 var rewardedAdObject = null;
+var interstitialAdObject = null;
+var interstitialAdReady = false;
+var gameStartAdShown = false;
 var rewardedListenerAttached = false;
 
 function getAdMobPluginMode() {
@@ -1087,6 +1089,48 @@ function buildAdMobRequestOptions() {
   return opts;
 }
 
+
+async function loadAdMobPlusInterstitial() {
+  try {
+    if (!ADMOB_INTERSTITIAL_ID || typeof admob === 'undefined' || !admob.InterstitialAd) return;
+    interstitialAdReady = false;
+    interstitialAdObject = new admob.InterstitialAd({ adUnitId: ADMOB_INTERSTITIAL_ID });
+
+    interstitialAdObject.on('load', function() {
+      interstitialAdReady = true;
+      console.log('AdMob Plus interstitial ad loaded.');
+    });
+    interstitialAdObject.on('loadfail', function(evt) {
+      interstitialAdReady = false;
+      console.log('AdMob Plus interstitial load failed:', evt && evt.message ? evt.message : evt);
+    });
+    interstitialAdObject.on('showfail', function(evt) {
+      interstitialAdReady = false;
+      console.log('AdMob Plus interstitial show failed:', evt && evt.message ? evt.message : evt);
+    });
+    interstitialAdObject.on('dismiss', async function() {
+      interstitialAdReady = false;
+      try { await interstitialAdObject.load(); } catch(e) { console.log('Reload interstitial failed:', e); }
+    });
+
+    await interstitialAdObject.load();
+  } catch (e) {
+    interstitialAdReady = false;
+    console.log('AdMob Plus interstitial load failed:', e && e.message ? e.message : e);
+  }
+}
+
+async function showGameStartInterstitialOnce() {
+  try {
+    if (gameStartAdShown || !interstitialAdReady || !interstitialAdObject) return;
+    gameStartAdShown = true;
+    interstitialAdReady = false;
+    await interstitialAdObject.show();
+  } catch (e) {
+    console.log('Could not show game start interstitial:', e && e.message ? e.message : e);
+  }
+}
+
 async function loadAdMobPlusRewarded() {
   try {
     rewardedAdReady = false;
@@ -1094,7 +1138,7 @@ async function loadAdMobPlusRewarded() {
 
     rewardedAdObject.on('load', function() {
       rewardedAdReady = true;
-      console.log('AdMob Plus rewarded test ad loaded.');
+      console.log('AdMob Plus rewarded ad loaded.');
       updateAdUiAvailability();
     });
     rewardedAdObject.on('loadfail', function(evt) {
@@ -1148,15 +1192,17 @@ function initAdMob() {
   try {
     if (mode === 'admob-plus') {
       admobInitialized = true;
-      console.log('AdMob Plus detected. Loading rewarded TEST ad:', ADMOB_REWARDED_ID);
+      console.log('AdMob Plus detected. Loading rewarded ad:', ADMOB_REWARDED_ID);
       loadAdMobPlusRewarded();
+      loadAdMobPlusInterstitial();
+      setTimeout(showGameStartInterstitialOnce, 2500);
       updateAdUiAvailability();
       return;
     }
 
     // Backward compatibility for older Cordova AdMob plugins.
     if (mode === 'legacy') {
-      if (AdMob.initialize) AdMob.initialize({ appId: ADMOB_APP_ID, isTesting: true });
+      if (AdMob.initialize) AdMob.initialize({ appId: ADMOB_APP_ID, isTesting: false });
       if (AdMob.prepareRewardedVideo) AdMob.prepareRewardedVideo(buildAdMobRequestOptions());
 
       if (!rewardedListenerAttached) {
@@ -1176,7 +1222,7 @@ function initAdMob() {
       admobInitialized = true;
       rewardedAdReady = true;
       updateAdUiAvailability();
-      console.log('Legacy AdMob initialized with TEST rewarded ad.');
+      console.log('Legacy AdMob initialized with rewarded ad.');
     }
   } catch (e) {
     admobInitialized = false;
@@ -1197,7 +1243,7 @@ function updateAdUiAvailability() {
   if (!accepted) btn.textContent = 'Privacy required for ads';
   else if (mode === 'none') btn.textContent = 'AdMob plugin missing';
   else if (!admobInitialized) btn.textContent = 'Loading ads...';
-  else btn.textContent = adsReady ? '🎬 Watch Test Rewarded Ad' : 'Loading ad...';
+  else btn.textContent = adsReady ? '🎬 Watch Rewarded Ad' : 'Loading ad...';
 }
 
 async function showVideoAdPlayer() {
