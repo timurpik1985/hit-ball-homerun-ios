@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -108,8 +108,15 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
 </style>
 </head>
 <body>
-<!-- AdMob will be loaded via Cordova plugin in mobile app -->
-<!-- For Cordova: cordova plugin add cordova-plugin-admob-free -->
+<!-- Optional AdMob rewarded ads are loaded via the native iOS/Cordova/Capacitor plugin when configured. -->
+<!--
+APP STORE / iOS WRAPPER REQUIRED SETTINGS:
+1) Add NSUserTrackingUsageDescription to Info.plist if AdMob uses IDFA/personalized ads:
+   <key>NSUserTrackingUsageDescription</key>
+   <string>This identifier will be used to deliver personalized ads and measure ad performance.</string>
+2) Do not initialize AdMob before the user confirms the privacy notice and the iOS ATT flow is completed.
+3) If ATT is denied, request non-personalized ads where your AdMob plugin supports it, or keep rewarded ads unavailable.
+-->
 
 <!-- PRIVACY CONSENT MODAL - Minimal & Quick -->
 <div id="consentModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:9999; padding:20px; padding-top:max(20px, env(safe-area-inset-top)); padding-bottom:max(20px, env(safe-area-inset-bottom)); align-items:center; justify-content:center;">
@@ -118,14 +125,14 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
     <!-- Header -->
     <div style="font-size:60px; margin-bottom:8px;">⚾</div>
     <h2 style="color:#fbbf24; font-size:24px; font-weight:900; margin:0 0 6px 0;">Hit Ball Homerun!</h2>
-    <p style="color:#cbd5e1; font-size:14px; margin:0 0 4px 0;">FREE Game with Video Ads</p>
+    <p style="color:#cbd5e1; font-size:14px; margin:0 0 4px 0;">FREE Baseball Game</p>
     <div style="background:#10b981; color:#fff; display:inline-block; padding:4px 14px; border-radius:20px; font-size:11px; font-weight:700; margin-top:6px; margin-bottom:20px;">
-      👨‍👩‍👧‍👦 Family-Friendly (4+)
+      👨‍👩‍👧‍👦 Suitable for All Ages
     </div>
     
     <!-- Brief description -->
     <p style="color:#e2e8f0; font-size:13px; line-height:1.5; margin:0 0 16px 0;">
-      We use Google AdMob to show family-friendly ads. Watch ads to unlock special balls!
+      We may use Google AdMob to show optional rewarded ads. You can play without watching ads.
     </p>
     
     <!-- Details Toggle (collapsible) -->
@@ -139,13 +146,13 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
     <!-- Hidden details (shown when clicked) -->
     <div id="consentDetails" style="display:none; background:rgba(255,255,255,0.05); border-radius:10px; padding:14px; margin-bottom:18px; text-align:left;">
       <p style="color:#e2e8f0; font-size:11px; line-height:1.5; margin:0 0 8px 0;">
-        <strong style="color:#a78bfa;">📺 Ads:</strong> Family-friendly ads via Google AdMob
+        <strong style="color:#a78bfa;">📺 Ads:</strong> Optional rewarded ads via Google AdMob
       </p>
       <p style="color:#e2e8f0; font-size:11px; line-height:1.5; margin:0 0 8px 0;">
-        <strong style="color:#a78bfa;">🔒 Data:</strong> Anonymous device ID and country (for ads only)
+        <strong style="color:#a78bfa;">🔒 Data:</strong> Ads may use identifiers, coarse location, product interaction, advertising data, diagnostics, and performance data as described in our Privacy Policy
       </p>
       <p style="color:#e2e8f0; font-size:11px; line-height:1.5; margin:0 0 8px 0;">
-        <strong style="color:#a78bfa;">📊 Game:</strong> Scores stored locally on your device
+        <strong style="color:#a78bfa;">📊 Game:</strong> Scores and progress are stored locally on your device
       </p>
       <p style="color:#e2e8f0; font-size:11px; line-height:1.5; margin:0;">
         <strong style="color:#a78bfa;">📄 Full Policy:</strong> <a href="https://timurpik1985.github.io/hit-ball-homerun-ios/privacy.html" target="_blank" style="color:#7dd3fc; text-decoration:underline;">Read here</a>
@@ -165,35 +172,49 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
     </button>
     
     <p style="color:#475569; font-size:9px; text-align:center; margin-top:8px; line-height:1.3;">
-      By tapping "Let's Play!" you accept our Privacy Policy
+      By tapping "Let's Play!" you confirm you reviewed our Privacy Policy
     </p>
     
   </div>
 </div>
 
 <script>
-// Privacy Consent Logic - Minimal Version
+// Privacy / Consent / ATT gating for App Store-safe ad behavior.
+// The game is playable without ads. Rewarded ads are enabled only after the user accepts
+// the privacy notice and the native iOS wrapper completes ATT handling when available.
 (function() {
-  function hasConsented() {
-    try {
-      return localStorage.getItem('privacyConsent') === 'accepted';
-    } catch(e) { return false; }
-  }
-  
+  window.trackingAuthorizationStatus = 'unknown'; // authorized, denied, restricted, notDetermined, unavailable
+  window.rewardedAdsAllowed = false;
+
+  window.getPrivacyConsent = function() {
+    try { return localStorage.getItem('privacyConsent') || 'not_set'; }
+    catch(e) { return 'not_set'; }
+  };
+
+  window.hasAcceptedPrivacy = function() {
+    return window.getPrivacyConsent() === 'accepted';
+  };
+
+  window.areRewardedAdsAllowed = function() {
+    return window.hasAcceptedPrivacy() && window.rewardedAdsAllowed === true;
+  };
+
   function showConsentModal() {
     var modal = document.getElementById('consentModal');
-    modal.style.display = 'flex';
+    if (modal) modal.style.display = 'flex';
     if (typeof pauseGame === 'function') pauseGame();
   }
-  
+  window.showConsentModal = showConsentModal;
+
   function hideConsentModal() {
-    document.getElementById('consentModal').style.display = 'none';
+    var modal = document.getElementById('consentModal');
+    if (modal) modal.style.display = 'none';
   }
-  
-  // Toggle details visibility
+
   window.toggleConsentDetails = function() {
     var details = document.getElementById('consentDetails');
     var btn = document.getElementById('detailsToggle');
+    if (!details || !btn) return;
     if (details.style.display === 'none') {
       details.style.display = 'block';
       btn.innerHTML = '🔼 Hide Details';
@@ -202,40 +223,64 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
       btn.innerHTML = 'ℹ️ Privacy Details';
     }
   };
-  
+
+  function requestATTIfAvailable(done) {
+    // Cordova IDFA plugin path. The iOS wrapper must include NSUserTrackingUsageDescription in Info.plist.
+    try {
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.idfa && cordova.plugins.idfa.requestPermission) {
+        cordova.plugins.idfa.requestPermission().then(function(result) {
+          window.trackingAuthorizationStatus = (result && (result.status || result.trackingPermission)) || String(result || 'unknown');
+          console.log('ATT result:', window.trackingAuthorizationStatus);
+          done();
+        }).catch(function(err) {
+          window.trackingAuthorizationStatus = 'denied';
+          console.log('ATT request failed:', err && err.message ? err.message : err);
+          done();
+        });
+        return;
+      }
+    } catch(e) {
+      window.trackingAuthorizationStatus = 'denied';
+      console.log('ATT handling error:', e && e.message ? e.message : e);
+    }
+    window.trackingAuthorizationStatus = 'unavailable';
+    done();
+  }
+
   window.acceptConsent = function() {
     try {
       localStorage.setItem('privacyConsent', 'accepted');
       localStorage.setItem('privacyConsentDate', new Date().toISOString());
     } catch(e) {}
     hideConsentModal();
-    
-    if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.idfa) {
-      cordova.plugins.idfa.requestPermission().then(function(result) {
-        console.log('ATT result:', result);
-      });
-    }
-    
-    if (typeof resumeGame === 'function') resumeGame();
+
+    requestATTIfAvailable(function() {
+      window.rewardedAdsAllowed = true;
+      if (typeof initAdMob === 'function') initAdMob();
+      if (typeof resumeGame === 'function') resumeGame();
+      if (typeof updateAdUiAvailability === 'function') updateAdUiAvailability();
+    });
   };
-  
+
   window.declineConsent = function() {
-    if (confirm('Without consent, you cannot use video ads to unlock special balls. Continue?')) {
+    if (confirm('You can continue playing without optional rewarded ads. Continue?')) {
       try {
         localStorage.setItem('privacyConsent', 'declined');
+        localStorage.setItem('privacyConsentDate', new Date().toISOString());
       } catch(e) {}
+      window.rewardedAdsAllowed = false;
       hideConsentModal();
+      if (typeof updateAdUiAvailability === 'function') updateAdUiAvailability();
       if (typeof resumeGame === 'function') resumeGame();
     }
   };
-  
-  // Show modal on first launch
-  if (!hasConsented()) {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', showConsentModal);
-    } else {
-      showConsentModal();
-    }
+
+  // Show modal on first launch. If already accepted from a previous launch, allow ads initialization after load/deviceready.
+  if (!window.hasAcceptedPrivacy()) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showConsentModal);
+    else showConsentModal();
+  } else {
+    window.rewardedAdsAllowed = true;
   }
 })();
 </script>
@@ -288,10 +333,6 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
       Tap PITCH BALL to start!
     </div>
     
-    <!-- AD BANNER TOP -->
-    <div id="adBannerTop" style="width:100%; height:40px; background:#2c3e50; color:#ecf0f1; text-align:center; line-height:40px; font-size:11px; display:none; border-bottom:2px solid #3498db;">
-      💰 BANNER AD SPACE - Connect AdMob/AdSense for Revenue
-    </div>
     
     <button id="stadbtn" onclick="cycleStadium()">🏟 Classic</button>
     <button id="sndbtn" onclick="toggleSound()">🔊 ON</button>
@@ -302,10 +343,6 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
       <canvas id="swingCanvas" width="180" height="150" style="display:block;margin:0 auto;"></canvas>
     </div>
     
-    <!-- AD BANNER BOTTOM -->
-    <div id="adBannerBottom" style="width:100%; height:40px; background:#34495e; color:#ecf0f1; text-align:center; line-height:40px; font-size:11px; display:none; border-top:2px solid #e74c3c;">
-      🎯 SPONSORED BY: Your Brand Here - Contact for Partnerships
-    </div>
     <div id="pwrbar"><div id="pwrfill"></div></div>
     <div id="dfly"></div>
     <div id="badge"></div>
@@ -361,12 +398,12 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
         <div class="sparkle-star" style="position:absolute; top:50%; left:5px; color:#fff; font-size:8px; animation:sparkle2 2.2s infinite;">✨</div>
         <div class="sparkle-star" style="position:absolute; top:50%; right:5px; color:#fff; font-size:8px; animation:sparkle3 2.7s infinite;">⭐</div>
         <div style="color:#fbbf24; font-weight:900; font-size:12px; margin-bottom:6px; text-shadow:0 1px 3px rgba(0,0,0,0.8); position:relative; z-index:1;">
-          📺 UNLOCK SPECIAL BALLS | Videos: <span style="color:#4ade80;" id="videoCount">0</span>/3
+          📺 OPTIONAL REWARDED ADS | Videos: <span style="color:#4ade80;" id="videoCount">0</span>/3
         </div>
         <button onclick="showVideoAdModal()" id="watchAdsBtn"
                 style="background:linear-gradient(45deg,#16a34a,#22c55e); border:none; color:white; 
                        padding:8px 20px; font-size:12px; font-weight:700; border-radius:8px; cursor:pointer; box-shadow:0 2px 8px rgba(34,197,94,0.5); position:relative; z-index:1;">
-          🎬 Watch Video Ad
+          🎬 Watch Rewarded Ad
         </button>
       </div>
       
@@ -391,7 +428,7 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
                 border:3px solid #fbbf24; box-shadow:0 0 30px rgba(251,191,36,0.3);">
       
       <div style="font-size:28px; margin-bottom:15px; color:#fbbf24;">
-        🎬 VIDEO AD OPPORTUNITY!
+        🎬 OPTIONAL REWARDED AD
       </div>
       
       <div id="adUnlockStatus" style="font-size:16px; margin-bottom:20px; line-height:1.4; color:#e2e8f0;">
@@ -401,7 +438,7 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
       <div style="margin:20px 0; padding:15px; background:rgba(56,189,248,0.1); 
                   border-radius:12px; border:2px solid #38bdf8;">
         <div style="color:#38bdf8; font-weight:bold; margin-bottom:8px;">
-          ⚡ UNLOCK SPECIAL BALLS WITH ADS! ⚡
+          ⚡ OPTIONAL: UNLOCK SPECIAL BALLS WITH ADS ⚡
         </div>
         <div style="font-size:14px; color:#cbd5e1;">
           🥈 Silver Ball: 1 video<br>
@@ -415,13 +452,13 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
                 style="background:linear-gradient(45deg,#16a34a,#22c55e); border:none; color:white; 
                        padding:15px 25px; font-size:16px; font-weight:bold; border-radius:12px; 
                        cursor:pointer; box-shadow:0 4px 12px rgba(34,197,94,0.3);">
-          📺 Watch Video (+Special Ball Progress)
+          📺 Watch Rewarded Ad
         </button>
         <button onclick="skipVideoAd()" 
                 style="background:linear-gradient(45deg,#6b7280,#9ca3af); border:none; color:white; 
                        padding:15px 25px; font-size:16px; font-weight:bold; border-radius:12px; 
                        cursor:pointer;">
-          ⏭️ Skip & Play
+          Skip
         </button>
       </div>
     </div>
@@ -975,167 +1012,153 @@ function playVictoryStinger() {
 function showVideoAdModal() {
   var modal = document.getElementById('videoAdModal');
   var status = document.getElementById('adUnlockStatus');
+  var watchBtn = document.querySelector('#videoAdModal button[onclick="watchVideoAd()"]');
   
-  // Update unlock status text
   var statusText = '';
   var nextUnlock = '';
-  
   if (videoAdsWatched === 0) {
-    statusText = 'Watch your first video to unlock the Silver Ball!';
-    nextUnlock = '🥈 Next: Silver Ball (1 video needed)';
+    statusText = 'Optional rewarded ad: unlock the Silver Ball.';
+    nextUnlock = '🥈 Next: Silver Ball (1 rewarded ad)';
   } else if (videoAdsWatched === 1) {
-    statusText = 'Silver Ball unlocked! Watch 1 more for Gold Ball.';
-    nextUnlock = '🥇 Next: Gold Ball (1 more video needed)';
+    statusText = 'Silver Ball unlocked. Optional rewarded ad: unlock the Gold Ball.';
+    nextUnlock = '🥇 Next: Gold Ball (1 more rewarded ad)';
   } else if (videoAdsWatched === 2) {
-    statusText = 'Gold Ball unlocked! Watch 1 more for Diamond Ball.';
-    nextUnlock = '💎 Next: Diamond Ball (1 more video needed)';
+    statusText = 'Gold Ball unlocked. Optional rewarded ad: unlock the Diamond Ball.';
+    nextUnlock = '💎 Next: Diamond Ball (1 more rewarded ad)';
   } else {
-    statusText = 'All special balls unlocked! Thanks for watching ads!';
-    nextUnlock = '🎉 All balls unlocked! You\'re awesome!';
+    statusText = 'All special balls unlocked.';
+    nextUnlock = '🎉 All balls unlocked!';
   }
   
   status.innerHTML = statusText + '<br><br><strong>' + nextUnlock + '</strong>';
+  if (watchBtn) {
+    var adsReady = canShowRewardedAd();
+    watchBtn.disabled = !adsReady;
+    watchBtn.style.opacity = adsReady ? '1' : '0.55';
+    watchBtn.textContent = adsReady ? '📺 Watch Rewarded Ad' : 'Ads unavailable';
+  }
   modal.style.display = 'block';
 }
 
 function watchVideoAd() {
   var modal = document.getElementById('videoAdModal');
   modal.style.display = 'none';
-  
-  // Simulate 30-second video ad
   showVideoAdPlayer();
 }
 
 function skipVideoAd() {
   var modal = document.getElementById('videoAdModal');
   modal.style.display = 'none';
-  
-  // Continue with game
-  continueGameAfterAd();
 }
 
-// ADMOB INTEGRATION SYSTEM
+// ADMOB INTEGRATION SYSTEM - App Store final-safe version
+// Production rewarded ads only. No test mode. No simulated rewards.
+// Rewards are granted only by the real rewarded-ad completion callback.
+var ADMOB_APP_ID = 'ca-app-pub-1629985022407089~9813154293';
+var ADMOB_REWARDED_ID = 'ca-app-pub-1629985022407089/9323245887';
 var admobInitialized = false;
-var testMode = true; // Set to false for production
+var rewardedListenerAttached = false;
 
-// AdMob Ad Unit IDs (Replace with your real IDs from AdMob console)
-var adUnitIds = {
-  // TEST IDs (use these during development)
-  rewardedVideo: testMode ? 'ca-app-pub-3940256099942544/5224354917' : 'ca-app-pub-1629985022407089/9323245887',
-  interstitial: testMode ? 'ca-app-pub-3940256099942544/1033173712' : 'ca-app-pub-1629985022407089/5275143485',
-  banner: testMode ? 'ca-app-pub-3940256099942544/6300978111' : 'ca-app-pub-1629985022407089/YOUR_BANNER_ID'
-};
+function canShowRewardedAd() {
+  return typeof areRewardedAdsAllowed === 'function' &&
+         areRewardedAdsAllowed() &&
+         admobInitialized &&
+         typeof AdMob !== 'undefined' &&
+         !!ADMOB_REWARDED_ID;
+}
 
-// Initialize AdMob
-function initAdMob() {
-  if (typeof AdMob !== 'undefined') {
-    AdMob.initialize({
-      appId: testMode ? 'ca-app-pub-3940256099942544~3347511713' : 'ca-app-pub-1629985022407089~9813154293',
-      testDeviceIds: ['YOUR_TEST_DEVICE_ID'], // Add your test device ID
-      isTesting: testMode
-    });
-    
-    // Prepare rewarded video
-    AdMob.prepareRewardedVideo({
-      adUnitId: adUnitIds.rewardedVideo,
-      autoShow: false
-    });
-    
-    admobInitialized = true;
-    console.log('AdMob initialized successfully');
-  } else {
-    console.log('AdMob not available - using simulation');
+function buildAdMobRequestOptions() {
+  var opts = { adUnitId: ADMOB_REWARDED_ID, autoShow: false };
+  // If ATT was denied/restricted, ask for non-personalized ads where supported by the installed AdMob plugin.
+  if (window.trackingAuthorizationStatus === 'denied' || window.trackingAuthorizationStatus === 'restricted') {
+    opts.npa = '1';
+    opts.nonPersonalizedAds = true;
   }
+  return opts;
+}
+
+function initAdMob() {
+  if (typeof areRewardedAdsAllowed === 'function' && !areRewardedAdsAllowed()) {
+    admobInitialized = false;
+    console.log('AdMob not initialized: privacy notice not accepted or ads disabled.');
+    updateAdUiAvailability();
+    return;
+  }
+  if (typeof AdMob === 'undefined' || !ADMOB_APP_ID || !ADMOB_REWARDED_ID) {
+    admobInitialized = false;
+    console.log('AdMob plugin unavailable or IDs missing. Optional rewarded ads disabled.');
+    updateAdUiAvailability();
+    return;
+  }
+  try {
+    if (AdMob.initialize) {
+      AdMob.initialize({ appId: ADMOB_APP_ID, isTesting: false });
+    }
+    if (AdMob.prepareRewardedVideo) {
+      AdMob.prepareRewardedVideo(buildAdMobRequestOptions());
+    }
+    if (!rewardedListenerAttached) {
+      rewardedListenerAttached = true;
+      document.addEventListener('onRewardedVideoReward', function(event) {
+        console.log('Rewarded ad reward received:', event && event.reward);
+        completeVideoAd();
+      });
+      document.addEventListener('onRewardedVideoFailedToShow', function(event) {
+        console.log('Rewarded ad failed to show:', event && event.error);
+        alert('Ad is not available right now. Please try again later.');
+      });
+      document.addEventListener('onRewardedVideoClosed', function() {
+        // No reward is granted here. Reward only on onRewardedVideoReward.
+        try {
+          if (AdMob.prepareRewardedVideo) AdMob.prepareRewardedVideo(buildAdMobRequestOptions());
+        } catch(e) {}
+      });
+    }
+    admobInitialized = true;
+    updateAdUiAvailability();
+    console.log('AdMob initialized for production rewarded ads. ATT status:', window.trackingAuthorizationStatus);
+  } catch (e) {
+    admobInitialized = false;
+    updateAdUiAvailability();
+    console.log('AdMob initialization failed:', e && e.message ? e.message : e);
+  }
+}
+
+function updateAdUiAvailability() {
+  var btn = document.getElementById('watchAdsBtn');
+  if (!btn) return;
+  var accepted = (typeof hasAcceptedPrivacy === 'function' && hasAcceptedPrivacy());
+  var adsReady = canShowRewardedAd();
+  btn.disabled = !adsReady;
+  btn.style.opacity = adsReady ? '1' : '0.55';
+  if (!accepted) btn.textContent = 'Privacy required for ads';
+  else btn.textContent = adsReady ? '🎬 Watch Rewarded Ad' : 'Ads unavailable';
 }
 
 function showVideoAdPlayer() {
-  if (admobInitialized && typeof AdMob !== 'undefined') {
-    // REAL ADMOB VIDEO AD
-    AdMob.showRewardedVideo();
-    
-    // Listen for ad completion
-    document.addEventListener('onRewardedVideoReward', function(event) {
-      console.log('Video ad reward received:', event.reward);
-      completeVideoAd();
-    });
-    
-    document.addEventListener('onRewardedVideoFailedToShow', function(event) {
-      console.log('Video ad failed to show:', event.error);
-      // Fallback to simulation or try again
-      showVideoAdPlayerSimulation();
-    });
-    
-  } else {
-    // FALLBACK SIMULATION (for web testing)
-    showVideoAdPlayerSimulation();
+  if (typeof hasAcceptedPrivacy === 'function' && !hasAcceptedPrivacy()) {
+    if (typeof showConsentModal === 'function') showConsentModal();
+    return;
   }
-}
-
-function showVideoAdPlayerSimulation() {
-  // Create video ad player overlay (original simulation)
-  var adPlayer = document.createElement('div');
-  adPlayer.id = 'videoAdPlayer';
-  adPlayer.style.cssText = `
-    position:fixed; top:0; left:0; width:100%; height:100%; 
-    background:#000; color:#fff; display:flex; align-items:center; 
-    justify-content:center; z-index:3000; font-family:Arial;
-  `;
-  
-  var adContent = `
-    <div style="text-align:center;">
-      <div style="font-size:24px; margin-bottom:20px;">
-        📺 Video Advertisement (SIMULATION)
-      </div>
-      <div style="font-size:48px; margin:20px 0;" id="adCountdown">30</div>
-      <div style="font-size:16px; color:#888;">
-        Please wait... Loading special ball unlock!
-      </div>
-      <div style="margin-top:30px;">
-        <div style="width:300px; height:6px; background:#333; border-radius:3px; margin:0 auto;">
-          <div id="adProgress" style="width:0%; height:100%; background:#fbbf24; border-radius:3px; transition:width 0.1s;"></div>
-        </div>
-      </div>
-      <div style="font-size:12px; color:#666; margin-top:15px;">
-        💡 In real app: This will be a real 30-second video ad
-      </div>
-    </div>
-  `;
-  
-  adPlayer.innerHTML = adContent;
-  document.body.appendChild(adPlayer);
-  
-  // 30-second countdown
-  var timeLeft = 30;
-  var countdown = document.getElementById('adCountdown');
-  var progress = document.getElementById('adProgress');
-  
-  var adTimer = setInterval(function() {
-    timeLeft--;
-    countdown.textContent = timeLeft;
-    progress.style.width = ((30 - timeLeft) / 30 * 100) + '%';
-    
-    if (timeLeft <= 0) {
-      clearInterval(adTimer);
-      completeVideoAd();
-    }
-  }, 1000);
+  if (!canShowRewardedAd()) {
+    alert('Rewarded ads are not available right now. You can continue playing normally.');
+    return;
+  }
+  try {
+    AdMob.showRewardedVideo();
+  } catch (e) {
+    console.log('Could not show rewarded ad:', e && e.message ? e.message : e);
+    alert('Ad is not available right now. Please try again later.');
+  }
 }
 
 function completeVideoAd() {
-  // Remove ad player
-  var adPlayer = document.getElementById('videoAdPlayer');
-  if (adPlayer) {
-    adPlayer.remove();
-  }
-  
-  // Increment ad counter
   videoAdsWatched++;
   localStorage.setItem('videoAdsWatched', videoAdsWatched);
-  
-  // Check for unlocks
   checkMilestones();
+  updateUnlockStrip();
+  updateAdUiAvailability();
   
-  // Show reward message
   var rewardMsg = '';
   if (videoAdsWatched === 1) rewardMsg = '🥈 Silver Ball Unlocked!';
   else if (videoAdsWatched === 2) rewardMsg = '🥇 Gold Ball Unlocked!';
@@ -1143,35 +1166,8 @@ function completeVideoAd() {
   else rewardMsg = '✨ Thanks for watching!';
   
   setTimeout(function() {
-    alert('🎉 Video Complete!\n\n' + rewardMsg + '\n\nSpecial balls unlocked: ' + videoAdsWatched + '/3');
-    continueGameAfterAd();
-  }, 500);
-}
-
-function continueGameAfterAd() {
-  // Continue with the original game pitch
-  sfxPitch();
-  // Always allow pitch - resets any stuck state
-  if(phase==='incoming'||phase==='flying'){
-    for(var i=0;i<balls.length;i++){balls[i].hit=true;balls[i].flying=false;}
-  }
-  bonusActive=false;
-  checkFever();
-  var avail=getAvail();
-  curBT = feverMode ? BALLS[7] : avail[Math.floor(Math.random()*avail.length)];
-  setBadge(curBT);
-  var hint=getNextUnlockHint();
-  if(hint) setTimeout(function(){showHint(hint,'#94a3b8');},800);
-  sizeCanvas();var bt=curBT,gr=GR();
-  pts=[];particles=[];landMarks=[];camFrozen=false;floatTexts=[];windTexts=[];windPts=[];windFx=null;peakY=99999;lastMilestone=0;J.lastZone='';rings=[];ringSpawnT=0;ringDistBonus=0;
-  camX=HOME_X+40;camY=gr-100;camScale=1;tCamX=HOME_X+40;tCamY=gr-100;tScale=1;arrowT=0;
-  if(bt.multi){var cnt=3+Math.floor(Math.random()*8);balls=[];for(var i=0;i<cnt;i++)balls.push(mkBall(bt,i));showLbl(bt.name+' x'+cnt+'!');} 
-  else{balls=[mkBall(bt,0)];showLbl(bt.name);}
-  if(bt.ghost)showHint('Swing at the ring!','#818cf8');
-  phase='incoming';btnOff();
-  var sg2=getStage();document.getElementById('stagelbl').textContent='STAGE '+stage;document.getElementById('stagegoal').textContent=sg2.desc;document.getElementById('stageprog').textContent=stageHits+'/'+sg2.hits;
-  document.getElementById('topmsg').textContent=bt.ghost?'Swing at glow!':bt.multi?'Hit all '+balls.length+'!':'Incoming!';
-  document.getElementById('dfly').textContent='';
+    alert('🎉 Reward received!\n\n' + rewardMsg + '\n\nSpecial balls unlocked: ' + Math.min(videoAdsWatched,3) + '/3');
+  }, 250);
 }
 
 function showRingTutorialPopup() {
@@ -2676,12 +2672,8 @@ function doPitch(){
   initAudio();
   if (musicOn && !musicTimer) startMusic();
   
-  // GAME START AD - Show on first game and every 10 balls
+  // Optional rewarded ads are user-initiated only. Do not interrupt gameplay with ads.
   ballCountForAd++;
-  if (ballCountForAd === 1 || ballCountForAd % 10 === 0) {
-    showVideoAdModal();
-    return; // Don't pitch until ad is handled
-  }
   
   sfxPitch();
   // Always allow pitch - resets any stuck state
@@ -3930,7 +3922,6 @@ function loop(ts) {
   // dt = 1.0 at 60fps, 0.5 at 120fps, 2.0 at 30fps
   var dt = delta / (1000 / 60);
   update(dt);
-  checkShowInterstitialAd(); // Check if we should show an ad
   drawScene();
 }
 window.addEventListener('load', function() {
@@ -3939,8 +3930,9 @@ window.addEventListener('load', function() {
   updateUnlockStrip();
   loadFirebase();
   
-  // Initialize AdMob for monetization
-  initAdMob();
+  // Initialize AdMob only after privacy notice was accepted. Do not load ads before consent/ATT handling.
+  if (typeof hasAcceptedPrivacy === 'function' && hasAcceptedPrivacy()) initAdMob();
+  else if (typeof updateAdUiAvailability === 'function') updateAdUiAvailability();
   
   // Unlock audio on ANY first interaction (touch or click, anywhere)
   var unlockHandler = function(e) {
@@ -3967,96 +3959,11 @@ window.addEventListener('load', function() {
   
   // Handle Cordova/PhoneGap device ready event for mobile apps
   document.addEventListener('deviceready', function() {
-    console.log('Device ready - reinitializing AdMob for mobile app');
-    initAdMob();
+    console.log('Device ready - checking AdMob availability for mobile app');
+    if (typeof hasAcceptedPrivacy === 'function' && hasAcceptedPrivacy()) initAdMob();
+    else if (typeof updateAdUiAvailability === 'function') updateAdUiAvailability();
   }, false);
 });
-</script>
-  <!-- INTERSTITIAL AD OVERLAY -->
-  <div id="interstitialAd" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); color:#fff; display:none; z-index:1000; text-align:center;">
-    <div style="padding-top:25%; font-family:Arial,sans-serif;">
-      <div style="font-size:32px; margin:20px; color:#e74c3c;">💥 GAME OVER!</div>
-      <div style="font-size:18px; margin:20px; color:#ecf0f1;">Distance: <span id="adFinalDistance">0</span>m</div>
-      <div style="font-size:16px; margin:30px; color:#f39c12;">🎁 Watch ad to get +50m bonus?</div>
-      <button onclick="watchRewardedAd()" style="padding:15px 30px; font-size:18px; margin:15px; background:#27ae60; color:#fff; border:none; border-radius:8px; cursor:pointer;">📺 Watch Ad (+50m)</button>
-      <button onclick="closeInterstitialAd()" style="padding:15px 30px; font-size:18px; margin:15px; background:#95a5a6; color:#fff; border:none; border-radius:8px; cursor:pointer;">Skip</button>
-    </div>
-  </div>
-
-<script>
-// MONETIZATION FUNCTIONS
-
-var adRevenue = 0;
-var adsWatched = 0;
-
-function showBannerAds() {
-  document.getElementById('adBannerTop').style.display = 'block';
-  document.getElementById('adBannerBottom').style.display = 'block';
-}
-
-function hideBannerAds() {
-  document.getElementById('adBannerTop').style.display = 'none';
-  document.getElementById('adBannerBottom').style.display = 'none';
-}
-
-function showInterstitialAd(finalDistance) {
-  document.getElementById('adFinalDistance').textContent = finalDistance;
-  document.getElementById('interstitialAd').style.display = 'block';
-  // Track ad impression for revenue
-  adRevenue += 0.02; // ~$0.02 per impression
-}
-
-function watchRewardedAd() {
-  // Simulate watching 30-second rewarded video ad
-  setTimeout(function() {
-    // Give player bonus distance
-    if (J.dist) J.dist += 50;
-    adRevenue += 0.25; // Higher revenue for rewarded ads
-    adsWatched++;
-    
-    // Update UI
-    document.getElementById('plbl').textContent = Math.floor(J.dist) + 'm';
-    
-    // Close ad
-    closeInterstitialAd();
-    
-    // Show reward message
-    setTimeout(function() {
-      alert('🎁 Bonus! +50m added to your distance!');
-    }, 500);
-  }, 2000); // 2 second simulation of 30-second ad
-  
-  // Update button to show loading
-  event.target.textContent = '⏳ Loading Ad...';
-  event.target.disabled = true;
-}
-
-function closeInterstitialAd() {
-  document.getElementById('interstitialAd').style.display = 'none';
-}
-
-// Show ads after game over (when ball stops moving)
-function checkShowInterstitialAd() {
-  if (phase === 'result' && !document.getElementById('interstitialAd').style.display.includes('block')) {
-    // 50% chance to show ad after game over
-    if (Math.random() < 0.5) {
-      setTimeout(function() {
-        showInterstitialAd(Math.floor(J.dist));
-      }, 3000); // Show 3 seconds after ball stops
-    }
-  }
-}
-
-// Enable banner ads by default (developers can remove this line to disable)
-// showBannerAds(); // Uncomment to show demo ad banners
-
-// Revenue tracking console (for developer)
-setInterval(function() {
-  if (adsWatched > 0) {
-    console.log('💰 Ad Revenue: $' + adRevenue.toFixed(2) + ' (Ads watched: ' + adsWatched + ')');
-  }
-}, 10000);
-
 </script>
 
 </body>
