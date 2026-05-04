@@ -1051,25 +1051,35 @@ function skipVideoAd() {
   modal.style.display = 'none';
 }
 
-// ADMOB INTEGRATION SYSTEM - App Store final-safe version
-// Production rewarded ads only. No test mode. No simulated rewards.
-// Rewards are granted only by the real rewarded-ad completion callback.
-var ADMOB_APP_ID = 'ca-app-pub-1629985022407089~9813154293';
-var ADMOB_REWARDED_ID = 'ca-app-pub-1629985022407089/9323245887';
+// ADMOB INTEGRATION SYSTEM - TestFlight ad-test version
+// Uses Google official iOS TEST IDs so TestFlight can show ads safely.
+// BEFORE APP STORE REVIEW / PRODUCTION: replace both IDs with your real AdMob IDs.
+// App ID format uses ~ and belongs in config.xml too.
+// Rewarded Unit ID format uses / and is used here in JavaScript.
+var ADMOB_APP_ID = 'ca-app-pub-3940256099942544~1458002511';
+var ADMOB_REWARDED_ID = 'ca-app-pub-3940256099942544/1712485313';
 var admobInitialized = false;
+var rewardedAdReady = false;
+var rewardedAdObject = null;
 var rewardedListenerAttached = false;
 
+function getAdMobPluginMode() {
+  if (typeof admob !== 'undefined' && admob && admob.RewardedAd) return 'admob-plus';
+  if (typeof AdMob !== 'undefined') return 'legacy';
+  return 'none';
+}
+
 function canShowRewardedAd() {
-  return typeof areRewardedAdsAllowed === 'function' &&
-         areRewardedAdsAllowed() &&
-         admobInitialized &&
-         typeof AdMob !== 'undefined' &&
-         !!ADMOB_REWARDED_ID;
+  var allowed = typeof areRewardedAdsAllowed === 'function' && areRewardedAdsAllowed();
+  if (!allowed || !admobInitialized || !ADMOB_REWARDED_ID) return false;
+  var mode = getAdMobPluginMode();
+  if (mode === 'admob-plus') return rewardedAdReady && !!rewardedAdObject;
+  if (mode === 'legacy') return true;
+  return false;
 }
 
 function buildAdMobRequestOptions() {
   var opts = { adUnitId: ADMOB_REWARDED_ID, autoShow: false };
-  // If ATT was denied/restricted, ask for non-personalized ads where supported by the installed AdMob plugin.
   if (window.trackingAuthorizationStatus === 'denied' || window.trackingAuthorizationStatus === 'restricted') {
     opts.npa = '1';
     opts.nonPersonalizedAds = true;
@@ -1077,48 +1087,100 @@ function buildAdMobRequestOptions() {
   return opts;
 }
 
+async function loadAdMobPlusRewarded() {
+  try {
+    rewardedAdReady = false;
+    rewardedAdObject = new admob.RewardedAd({ adUnitId: ADMOB_REWARDED_ID });
+
+    rewardedAdObject.on('load', function() {
+      rewardedAdReady = true;
+      console.log('AdMob Plus rewarded test ad loaded.');
+      updateAdUiAvailability();
+    });
+    rewardedAdObject.on('loadfail', function(evt) {
+      rewardedAdReady = false;
+      console.log('AdMob Plus rewarded ad load failed:', evt && evt.message ? evt.message : evt);
+      updateAdUiAvailability();
+    });
+    rewardedAdObject.on('showfail', function(evt) {
+      rewardedAdReady = false;
+      console.log('AdMob Plus rewarded ad show failed:', evt && evt.message ? evt.message : evt);
+      alert('Ad is not available right now. Please try again later.');
+      updateAdUiAvailability();
+    });
+    rewardedAdObject.on('reward', function(evt) {
+      console.log('AdMob Plus reward received:', evt && evt.reward ? evt.reward : evt);
+      completeVideoAd();
+    });
+    rewardedAdObject.on('dismiss', async function() {
+      // No reward is granted here. Reward only on the reward event.
+      rewardedAdReady = false;
+      updateAdUiAvailability();
+      try { await rewardedAdObject.load(); } catch(e) { console.log('Reload rewarded failed:', e); }
+    });
+
+    await rewardedAdObject.load();
+  } catch (e) {
+    rewardedAdReady = false;
+    console.log('AdMob Plus initialization/load failed:', e && e.message ? e.message : e);
+    updateAdUiAvailability();
+  }
+}
+
 function initAdMob() {
   if (typeof areRewardedAdsAllowed === 'function' && !areRewardedAdsAllowed()) {
     admobInitialized = false;
+    rewardedAdReady = false;
     console.log('AdMob not initialized: privacy notice not accepted or ads disabled.');
     updateAdUiAvailability();
     return;
   }
-  if (typeof AdMob === 'undefined' || !ADMOB_APP_ID || !ADMOB_REWARDED_ID) {
+
+  var mode = getAdMobPluginMode();
+  if (mode === 'none') {
     admobInitialized = false;
-    console.log('AdMob plugin unavailable or IDs missing. Optional rewarded ads disabled.');
+    rewardedAdReady = false;
+    console.log('AdMob plugin unavailable. Install admob-plus-cordova in config.xml.');
     updateAdUiAvailability();
     return;
   }
+
   try {
-    if (AdMob.initialize) {
-      AdMob.initialize({ appId: ADMOB_APP_ID, isTesting: false });
+    if (mode === 'admob-plus') {
+      admobInitialized = true;
+      console.log('AdMob Plus detected. Loading rewarded TEST ad:', ADMOB_REWARDED_ID);
+      loadAdMobPlusRewarded();
+      updateAdUiAvailability();
+      return;
     }
-    if (AdMob.prepareRewardedVideo) {
-      AdMob.prepareRewardedVideo(buildAdMobRequestOptions());
+
+    // Backward compatibility for older Cordova AdMob plugins.
+    if (mode === 'legacy') {
+      if (AdMob.initialize) AdMob.initialize({ appId: ADMOB_APP_ID, isTesting: true });
+      if (AdMob.prepareRewardedVideo) AdMob.prepareRewardedVideo(buildAdMobRequestOptions());
+
+      if (!rewardedListenerAttached) {
+        rewardedListenerAttached = true;
+        document.addEventListener('onRewardedVideoReward', function(event) {
+          console.log('Legacy rewarded ad reward received:', event && event.reward);
+          completeVideoAd();
+        });
+        document.addEventListener('onRewardedVideoFailedToShow', function(event) {
+          console.log('Legacy rewarded ad failed to show:', event && event.error);
+          alert('Ad is not available right now. Please try again later.');
+        });
+        document.addEventListener('onRewardedVideoClosed', function() {
+          try { if (AdMob.prepareRewardedVideo) AdMob.prepareRewardedVideo(buildAdMobRequestOptions()); } catch(e) {}
+        });
+      }
+      admobInitialized = true;
+      rewardedAdReady = true;
+      updateAdUiAvailability();
+      console.log('Legacy AdMob initialized with TEST rewarded ad.');
     }
-    if (!rewardedListenerAttached) {
-      rewardedListenerAttached = true;
-      document.addEventListener('onRewardedVideoReward', function(event) {
-        console.log('Rewarded ad reward received:', event && event.reward);
-        completeVideoAd();
-      });
-      document.addEventListener('onRewardedVideoFailedToShow', function(event) {
-        console.log('Rewarded ad failed to show:', event && event.error);
-        alert('Ad is not available right now. Please try again later.');
-      });
-      document.addEventListener('onRewardedVideoClosed', function() {
-        // No reward is granted here. Reward only on onRewardedVideoReward.
-        try {
-          if (AdMob.prepareRewardedVideo) AdMob.prepareRewardedVideo(buildAdMobRequestOptions());
-        } catch(e) {}
-      });
-    }
-    admobInitialized = true;
-    updateAdUiAvailability();
-    console.log('AdMob initialized for production rewarded ads. ATT status:', window.trackingAuthorizationStatus);
   } catch (e) {
     admobInitialized = false;
+    rewardedAdReady = false;
     updateAdUiAvailability();
     console.log('AdMob initialization failed:', e && e.message ? e.message : e);
   }
@@ -1128,24 +1190,44 @@ function updateAdUiAvailability() {
   var btn = document.getElementById('watchAdsBtn');
   if (!btn) return;
   var accepted = (typeof hasAcceptedPrivacy === 'function' && hasAcceptedPrivacy());
+  var mode = getAdMobPluginMode();
   var adsReady = canShowRewardedAd();
   btn.disabled = !adsReady;
   btn.style.opacity = adsReady ? '1' : '0.55';
   if (!accepted) btn.textContent = 'Privacy required for ads';
-  else btn.textContent = adsReady ? '🎬 Watch Rewarded Ad' : 'Ads unavailable';
+  else if (mode === 'none') btn.textContent = 'AdMob plugin missing';
+  else if (!admobInitialized) btn.textContent = 'Loading ads...';
+  else btn.textContent = adsReady ? '🎬 Watch Test Rewarded Ad' : 'Loading ad...';
 }
 
-function showVideoAdPlayer() {
+async function showVideoAdPlayer() {
   if (typeof hasAcceptedPrivacy === 'function' && !hasAcceptedPrivacy()) {
     if (typeof showConsentModal === 'function') showConsentModal();
     return;
   }
-  if (!canShowRewardedAd()) {
-    alert('Rewarded ads are not available right now. You can continue playing normally.');
+
+  var mode = getAdMobPluginMode();
+  if (mode === 'none') {
+    alert('AdMob plugin is missing in the iOS build. Add admob-plus-cordova to config.xml and rebuild TestFlight.');
     return;
   }
+
+  if (!canShowRewardedAd()) {
+    alert('Rewarded ad is still loading or not available yet. Wait a few seconds and try again.');
+    return;
+  }
+
   try {
-    AdMob.showRewardedVideo();
+    if (mode === 'admob-plus' && rewardedAdObject) {
+      rewardedAdReady = false;
+      updateAdUiAvailability();
+      await rewardedAdObject.show();
+      return;
+    }
+    if (mode === 'legacy') {
+      AdMob.showRewardedVideo();
+      return;
+    }
   } catch (e) {
     console.log('Could not show rewarded ad:', e && e.message ? e.message : e);
     alert('Ad is not available right now. Please try again later.');
