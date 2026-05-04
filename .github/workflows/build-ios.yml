@@ -5,16 +5,15 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-15
+    # Use macOS 14 because the current macOS 15 runner is selecting Xcode 26,
+    # and admob-plus-cordova is failing in Swift compilation with Xcode 26.
+    runs-on: macos-14
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # IMPORTANT:
-      # Xcode 26 is causing Swift compile failures inside admob-plus-cordova.
-      # Prefer Xcode 16.x when available. Fall back to latest only if 16.x is not installed.
-      - name: Select Stable Xcode
+      - name: Select Xcode 16
         run: |
           echo "=== Available Xcode versions ==="
           ls /Applications/ | grep -i Xcode || true
@@ -32,15 +31,8 @@ jobs:
             sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
             echo "Selected Xcode 16.1"
           else
-            echo "WARNING: Xcode 16.x not found. Falling back to latest Xcode."
-            LATEST=$(ls /Applications/ | grep -i "Xcode" | sort -V | tail -1)
-            if [ -n "$LATEST" ]; then
-              sudo xcode-select -s "/Applications/$LATEST/Contents/Developer"
-              echo "Selected $LATEST"
-            else
-              echo "ERROR: No Xcode found"
-              exit 1
-            fi
+            echo "ERROR: Xcode 16.x not found on this runner. Do not build this plugin with Xcode 26."
+            exit 1
           fi
 
           xcodebuild -version
@@ -60,9 +52,7 @@ jobs:
           security unlock-keychain -p "buildpassword" "$KEYCHAIN_PATH"
 
           security import "$CERTIFICATE_PATH" -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/xcodebuild
-
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "buildpassword" "$KEYCHAIN_PATH"
-
           security list-keychains -d user -s "$KEYCHAIN_PATH"
 
       - name: Install Provisioning Profile
@@ -73,12 +63,9 @@ jobs:
           echo "$BUILD_PROVISION_PROFILE_BASE64" | tr -d '\n ' | base64 --decode --output "$PP_PATH"
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-
           security cms -D -i "$PP_PATH" > "$RUNNER_TEMP/profile.plist"
           UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$RUNNER_TEMP/profile.plist")
-
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-
           echo "Installed provisioning profile UUID: $UUID"
 
       - name: System Environment Setup
@@ -90,8 +77,8 @@ jobs:
 
       - name: Prepare Platform
         run: |
-          rm -rf platforms/ios plugins
-          cordova platform add ios --non-interactive
+          rm -rf platforms plugins
+          cordova platform add ios@7.1.1 --non-interactive
 
       - name: Patch AdMob Plus Swift Compatibility
         run: |
@@ -102,7 +89,6 @@ jobs:
 
           if [ -z "$AMB_CONTEXT" ] || [ -z "$AMB_PLUGIN" ]; then
             echo "ERROR: admob-plus-cordova Swift files not found."
-            echo "This means the AdMob plugin was not installed from config.xml."
             find platforms/ios -path "*admob*" -type f || true
             exit 1
           fi
@@ -110,13 +96,8 @@ jobs:
           echo "Found AMBContext: $AMB_CONTEXT"
           echo "Found AMBPlugin: $AMB_PLUGIN"
 
-          # Fix optional callbackId compile issue on newer cordova-ios.
           perl -0pi -e 's/self\.commandDelegate\.send\(message, callbackId: command\.callbackId\)/self.commandDelegate.send(message, callbackId: command.callbackId!)/g' "$AMB_CONTEXT"
-
-          # Fix non-optional CDVPluginResult compile issue.
           perl -0pi -e 's/result\?\.setKeepCallbackAs\(true\)/result.setKeepCallbackAs(true)/g' "$AMB_PLUGIN"
-
-          # Fix deprecated enum warning. This is not usually fatal, but keep it clean.
           perl -0pi -e 's/CDVCommandStatus_OK/CDVCommandStatus.ok/g' "$AMB_PLUGIN"
 
           echo "Patch confirmation:"
@@ -128,11 +109,7 @@ jobs:
         run: |
           PLIST_PATH=$(find platforms/ios -name "*-Info.plist" | head -n 1)
           echo "Checking plist: $PLIST_PATH"
-
-          echo "NSUserTrackingUsageDescription:"
           /usr/libexec/PlistBuddy -c "Print :NSUserTrackingUsageDescription" "$PLIST_PATH"
-
-          echo "GADApplicationIdentifier:"
           /usr/libexec/PlistBuddy -c "Print :GADApplicationIdentifier" "$PLIST_PATH"
 
       - name: Force iPad Compliance
@@ -151,9 +128,11 @@ jobs:
       - name: Print Build Errors If Failed
         if: failure()
         run: |
-          echo "=== Swift/Xcode errors from build log ==="
-          grep -n -i -C 5 "error:" "$RUNNER_TEMP/cordova-build.log" || true
-          grep -n -i -C 5 "failed" "$RUNNER_TEMP/cordova-build.log" || true
+          echo "=== Build errors ==="
+          grep -n -i -C 6 "error:" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 6 "failed" "$RUNNER_TEMP/cordova-build.log" || true
+          echo "=== Selected Xcode ==="
+          xcodebuild -version || true
 
       - name: Locate and Verify IPA
         id: find_ipa
@@ -163,7 +142,6 @@ jobs:
             echo "ERROR: IPA file not found"
             exit 1
           fi
-
           echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
           echo "Found IPA: $IPA_PATH"
           ls -lh "$IPA_PATH"
