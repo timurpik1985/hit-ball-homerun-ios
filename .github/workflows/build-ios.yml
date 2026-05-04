@@ -29,7 +29,7 @@ jobs:
             sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
             echo "Selected Xcode 16.1"
           else
-            echo "ERROR: Xcode 16.x not found on runner"
+            echo "ERROR: Xcode 16.x not found"
             ls /Applications/ | grep -i Xcode || true
             exit 1
           fi
@@ -94,33 +94,50 @@ jobs:
           fi
 
           echo "AdMob plugin dir: $ADMOB_DIR"
-          echo "Swift files before patch:"
-          find "$ADMOB_DIR" -name "*.swift" -maxdepth 1 -print
 
-          # 1) Cordova iOS callbackId became optional in newer versions.
-          # Patch every occurrence, not only AMBContext.
+          # Cordova callbackId optional compatibility.
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/callbackId: command\.callbackId\)/callbackId: command.callbackId!\)/g'
 
-          # 2) CDVPluginResult initializer returns a non-optional object now.
+          # CDVPluginResult non-optional compatibility.
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/result\?\.setKeepCallbackAs\(true\)/result.setKeepCallbackAs(true)/g'
 
-          # 3) Old Cordova enum name.
+          # Old Cordova enum compatibility.
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/CDVCommandStatus_OK/CDVCommandStatus.ok/g'
 
-          # 4) Cordova plugin.viewController is optional in current headers.
-          # Google Mobile Ads present(...) requires a non-optional UIViewController.
-          # This is the new failure visible in #39 around AMBRewarded / AMBRewardedInterstitial.
+          # Cordova viewController optional compatibility for Google Mobile Ads present(...) calls.
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/fromRootViewController: plugin\.viewController/fromRootViewController: plugin.viewController!/g'
-
-          # 5) Some versions use the modern Swift GMA call form with rootViewController label.
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/rootViewController: plugin\.viewController/rootViewController: plugin.viewController!/g'
 
           echo "Patch confirmation:"
           grep -RIn "command.callbackId" "$ADMOB_DIR" || true
           grep -RIn "setKeepCallbackAs" "$ADMOB_DIR" || true
           grep -RIn "CDVPluginResult(status" "$ADMOB_DIR" || true
-          grep -RIn "fromRootViewController: plugin.viewController" "$ADMOB_DIR" || true
-          grep -RIn "rootViewController: plugin.viewController" "$ADMOB_DIR" || true
+          grep -RIn "viewController!" "$ADMOB_DIR" || true
+
+      - name: Stabilize Swift Release Build
+        run: |
+          echo "Disabling Swift Release optimization to avoid Swift compiler crash in admob-plus-cordova."
+
+          PBXPROJ=$(find platforms/ios -name "project.pbxproj" | head -n 1)
+          if [ -z "$PBXPROJ" ]; then
+            echo "ERROR: project.pbxproj not found"
+            exit 1
+          fi
+
+          echo "Patching project: $PBXPROJ"
+
+          # Force all generated Xcode build configs to safer Swift settings.
+          perl -0pi -e 's/SWIFT_OPTIMIZATION_LEVEL = "-O";/SWIFT_OPTIMIZATION_LEVEL = "-Onone";/g' "$PBXPROJ"
+          perl -0pi -e 's/SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";/SWIFT_OPTIMIZATION_LEVEL = "-Onone";/g' "$PBXPROJ"
+          perl -0pi -e 's/SWIFT_COMPILATION_MODE = wholemodule;/SWIFT_COMPILATION_MODE = singlefile;/g' "$PBXPROJ"
+          perl -0pi -e 's/ONLY_ACTIVE_ARCH = NO;/ONLY_ACTIVE_ARCH = YES;/g' "$PBXPROJ"
+
+          # Some CordovaLib targets default to iOS 11. Raise to 13 to match the app and reduce Xcode warnings.
+          perl -0pi -e 's/IPHONEOS_DEPLOYMENT_TARGET = 11\.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' "$PBXPROJ"
+          perl -0pi -e 's/IPHONEOS_DEPLOYMENT_TARGET = 12\.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' "$PBXPROJ"
+
+          echo "Swift settings after patch:"
+          grep -n "SWIFT_OPTIMIZATION_LEVEL\|SWIFT_COMPILATION_MODE\|IPHONEOS_DEPLOYMENT_TARGET" "$PBXPROJ" | head -80 || true
 
       - name: Verify ATT and AdMob Plist Keys
         run: |
@@ -144,16 +161,22 @@ jobs:
       - name: Build Signed App
         run: |
           set -o pipefail
-          cordova build ios --release --device --buildConfig=build.json --non-interactive 2>&1 | tee "$RUNNER_TEMP/cordova-build.log"
+          cordova build ios --release --device --buildConfig=build.json --non-interactive \
+            --buildFlag="SWIFT_OPTIMIZATION_LEVEL=-Onone" \
+            --buildFlag="SWIFT_COMPILATION_MODE=singlefile" \
+            --buildFlag="COMPILER_INDEX_STORE_ENABLE=NO" \
+            2>&1 | tee "$RUNNER_TEMP/cordova-build.log"
 
       - name: Print Build Errors If Failed
         if: failure()
         run: |
           echo "=== Swift/Xcode errors from build log ==="
-          grep -n -i -C 10 "error:" "$RUNNER_TEMP/cordova-build.log" || true
-          grep -n -i -C 10 "value of optional" "$RUNNER_TEMP/cordova-build.log" || true
-          grep -n -i -C 10 "cannot use optional" "$RUNNER_TEMP/cordova-build.log" || true
-          grep -n -i -C 10 "failed" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 12 "error:" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 12 "segmentation" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 12 "signal" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 12 "value of optional" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 12 "cannot use optional" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 12 "failed" "$RUNNER_TEMP/cordova-build.log" || true
 
       - name: Upload Build Log If Failed
         if: failure()
