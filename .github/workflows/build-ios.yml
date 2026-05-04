@@ -98,11 +98,16 @@ jobs:
           # Cordova callbackId optional compatibility.
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/callbackId: command\.callbackId\)/callbackId: command.callbackId!\)/g'
 
-          # CDVPluginResult non-optional compatibility.
-          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/result\?\.setKeepCallbackAs\(true\)/result.setKeepCallbackAs(true)/g'
+          # IMPORTANT FOR XCODE 16.2 / CORDOVA IOS 7.1.1:
+          # CDVPluginResult(...) is optional here, so keep optional chaining.
+          # Previous workflow converted result?. to result. and caused:
+          # "value of optional type 'CDVPluginResult?' must be unwrapped..."
+          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/result\.setKeepCallbackAs\(true\)/result?.setKeepCallbackAs(true)/g'
+          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/result\?\.setKeepCallbackAs\(true\)/result?.setKeepCallbackAs(true)/g'
 
-          # Old Cordova enum compatibility.
-          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/CDVCommandStatus_OK/CDVCommandStatus.ok/g'
+          # Keep old Cordova enum. Xcode 16/Cordova headers accept it; changing it is not needed.
+          # If the plugin has already been patched to CDVCommandStatus.ok, keep it as-is.
+          # Do not force this conversion anymore.
 
           # Cordova viewController optional compatibility for Google Mobile Ads present(...) calls.
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/fromRootViewController: plugin\.viewController/fromRootViewController: plugin.viewController!/g'
