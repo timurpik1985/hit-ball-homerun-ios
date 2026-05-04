@@ -80,7 +80,7 @@ jobs:
 
       - name: Patch AdMob Plus Swift Compatibility for Xcode 26
         run: |
-          echo "Patching admob-plus-cordova Swift files for Xcode 26..."
+          echo "Patching admob-plus-cordova Swift files for Xcode 26 + cordova-ios 7.1.1..."
 
           ADMOB_DIR=$(find platforms/ios -path "*/Plugins/admob-plus-cordova" -type d | head -n 1)
 
@@ -92,15 +92,16 @@ jobs:
 
           echo "AdMob plugin dir: $ADMOB_DIR"
 
-          # Xcode 26 / current Cordova: command.callbackId is optional but Cordova send() expects non-optional.
+          # command.callbackId is optional; unwrap it for Cordova send(...).
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/callbackId: command\.callbackId\)/callbackId: command.callbackId!\)/g'
 
-          # Xcode 26: CDVPluginResult initializer is non-optional, so optional chaining is invalid.
-          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/result\?\.setKeepCallbackAs\(true\)/result.setKeepCallbackAs(true)/g'
+          # IMPORTANT: with cordova-ios 7.1.1, CDVPluginResult(...) is optional even under Xcode 26.
+          # Keep optional chaining. This fixes:
+          # AMBPlugin.swift:187:9: error: value of optional type 'CDVPluginResult?' must be unwrapped...
+          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/result\.setKeepCallbackAs\(true\)/result?.setKeepCallbackAs(true)/g'
+          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/result\?\.setKeepCallbackAs\(true\)/result?.setKeepCallbackAs(true)/g'
 
-          # Xcode 26 / newer Cordova enum.
-          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/CDVCommandStatus_OK/CDVCommandStatus.ok/g'
-
+          # Keep CDVCommandStatus_OK. Do not convert it; it is only a warning in this setup.
           # Root view controller must be non-optional for Google Mobile Ads present(...) calls.
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/fromRootViewController: plugin\.viewController/fromRootViewController: plugin.viewController!/g'
           find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/rootViewController: plugin\.viewController/rootViewController: plugin.viewController!/g'
@@ -113,7 +114,7 @@ jobs:
 
       - name: Stabilize Swift Release Build
         run: |
-          echo "Disabling Swift Release optimization to avoid Swift compiler crash in admob-plus-cordova."
+          echo "Stabilizing Swift Release build."
 
           PBXPROJ=$(find platforms/ios -name "project.pbxproj" | head -n 1)
           if [ -z "$PBXPROJ" ]; then
