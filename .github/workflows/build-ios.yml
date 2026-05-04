@@ -11,18 +11,28 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Select Xcode 26
+      # IMPORTANT:
+      # Xcode 26 is causing Swift compile failures inside admob-plus-cordova.
+      # Prefer Xcode 16.x when available. Fall back to latest only if 16.x is not installed.
+      - name: Select Stable Xcode
         run: |
           echo "=== Available Xcode versions ==="
           ls /Applications/ | grep -i Xcode || true
 
-          if [ -d "/Applications/Xcode_26.0.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_26.0.app/Contents/Developer
-            echo "Selected Xcode 26.0"
-          elif [ -d "/Applications/Xcode_26.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_26.app/Contents/Developer
-            echo "Selected Xcode 26"
+          if [ -d "/Applications/Xcode_16.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+            echo "Selected Xcode 16.4"
+          elif [ -d "/Applications/Xcode_16.3.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
+            echo "Selected Xcode 16.3"
+          elif [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+            echo "Selected Xcode 16.2"
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+            echo "Selected Xcode 16.1"
           else
+            echo "WARNING: Xcode 16.x not found. Falling back to latest Xcode."
             LATEST=$(ls /Applications/ | grep -i "Xcode" | sort -V | tail -1)
             if [ -n "$LATEST" ]; then
               sudo xcode-select -s "/Applications/$LATEST/Contents/Developer"
@@ -80,6 +90,7 @@ jobs:
 
       - name: Prepare Platform
         run: |
+          rm -rf platforms/ios plugins
           cordova platform add ios --non-interactive
 
       - name: Patch AdMob Plus Swift Compatibility
@@ -99,17 +110,19 @@ jobs:
           echo "Found AMBContext: $AMB_CONTEXT"
           echo "Found AMBPlugin: $AMB_PLUGIN"
 
-          # Fix error:
-          # value of optional type 'String?' must be unwrapped to a value of type 'String'
+          # Fix optional callbackId compile issue on newer cordova-ios.
           perl -0pi -e 's/self\.commandDelegate\.send\(message, callbackId: command\.callbackId\)/self.commandDelegate.send(message, callbackId: command.callbackId!)/g' "$AMB_CONTEXT"
 
-          # Fix error:
-          # cannot use optional chaining on non-optional value of type 'CDVPluginResult'
+          # Fix non-optional CDVPluginResult compile issue.
           perl -0pi -e 's/result\?\.setKeepCallbackAs\(true\)/result.setKeepCallbackAs(true)/g' "$AMB_PLUGIN"
+
+          # Fix deprecated enum warning. This is not usually fatal, but keep it clean.
+          perl -0pi -e 's/CDVCommandStatus_OK/CDVCommandStatus.ok/g' "$AMB_PLUGIN"
 
           echo "Patch confirmation:"
           grep -n "commandDelegate.send(message" "$AMB_CONTEXT" || true
           grep -n "setKeepCallbackAs" "$AMB_PLUGIN" || true
+          grep -n "CDVPluginResult(status" "$AMB_PLUGIN" || true
 
       - name: Verify ATT and AdMob Plist Keys
         run: |
@@ -132,7 +145,15 @@ jobs:
 
       - name: Build Signed App
         run: |
-          cordova build ios --release --device --buildConfig=build.json --non-interactive
+          set -o pipefail
+          cordova build ios --release --device --buildConfig=build.json --non-interactive 2>&1 | tee "$RUNNER_TEMP/cordova-build.log"
+
+      - name: Print Build Errors If Failed
+        if: failure()
+        run: |
+          echo "=== Swift/Xcode errors from build log ==="
+          grep -n -i -C 5 "error:" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 5 "failed" "$RUNNER_TEMP/cordova-build.log" || true
 
       - name: Locate and Verify IPA
         id: find_ipa
