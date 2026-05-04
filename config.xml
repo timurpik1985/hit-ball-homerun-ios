@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.timurpiker.homerungame" version="1.0.20" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.timurpiker.homerungame" version="1.0.21" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Hit Ball Homerun Free Play</name>
     <description>The ultimate baseball hitting game! Flick to hit amazing home runs through space. Unlock Silver, Gold &amp; Diamond balls as you journey from the stadium to the cosmos.</description>
     <author email="timurpiker@gmail.com" href="https://github.com/timurpik1985">Timur Piker</author>
