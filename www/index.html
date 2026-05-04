@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -1613,15 +1613,149 @@ function renderLB() {
   }
   var rk = ['1st','2nd','3rd'];
   var h = '';
-  for (var i = 0; i < Math.min(data.length, 50); i++) {
+  
+  // Find user's rank
+  var myRank = -1;
+  for (var i = 0; i < data.length; i++) {
+    if (data[i].id === myDocId) {
+      myRank = i;
+      break;
+    }
+  }
+  
+  // ===== USER'S RANK BANNER (always visible at top) =====
+  if (myRank >= 0) {
+    var myData = data[myRank];
+    var rankDisplay = myRank < 3 ? rk[myRank] : '#'+(myRank+1);
+    var totalPlayers = data.length;
+    h += '<div style="background:linear-gradient(135deg,#7c3aed,#a855f7); border-radius:12px; padding:10px 12px; margin-bottom:10px; box-shadow:0 4px 12px rgba(124,58,237,0.4); position:sticky; top:0; z-index:5;">';
+    h += '<div style="display:flex; align-items:center; justify-content:space-between;">';
+    h += '<div>';
+    h += '<div style="color:#fef3c7; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1px;">⭐ Your Rank</div>';
+    h += '<div style="color:#fff; font-size:18px; font-weight:900;">' + rankDisplay + ' <span style="font-size:11px; color:#ddd6fe;">of ' + totalPlayers + '</span></div>';
+    h += '<div style="color:#fef3c7; font-size:11px; margin-top:2px;">' + myData.name + '</div>';
+    h += '</div>';
+    h += '<div style="text-align:right;">';
+    h += '<div style="color:#fbbf24; font-size:16px; font-weight:900;">' + valFn(myData) + '</div>';
+    h += '<button onclick="scrollToMyRank()" style="background:rgba(255,255,255,0.2); border:1px solid #fff; color:#fff; padding:3px 8px; font-size:9px; border-radius:6px; margin-top:3px; cursor:pointer;">📍 View in list</button>';
+    h += '</div>';
+    h += '</div>';
+    h += '</div>';
+  } else {
+    // Not on leaderboard yet
+    h += '<div style="background:linear-gradient(135deg,#475569,#64748b); border-radius:12px; padding:10px 12px; margin-bottom:10px; text-align:center;">';
+    h += '<div style="color:#cbd5e1; font-size:11px;">⚾ Save your score to appear on the leaderboard!</div>';
+    h += '</div>';
+  }
+  
+  // ===== TOP 3 ALWAYS VISIBLE =====
+  h += '<div style="color:#7c3aed; font-size:10px; font-weight:700; margin:8px 0 4px 4px; letter-spacing:1px;">🏆 TOP 3</div>';
+  for (var i = 0; i < Math.min(data.length, 3); i++) {
     var s = data[i];
     var isMe = s.id === myDocId;
-    h += '<div class="lbrow' + (isMe ? ' lbyou' : '') + '">';
-    h += '<div class="lbrank">' + (i < 3 ? rk[i] : '#'+(i+1)) + '</div>';
+    h += '<div class="lbrow' + (isMe ? ' lbyou' : '') + '" id="lbrow_' + i + '">';
+    h += '<div class="lbrank">' + rk[i] + '</div>';
     h += '<div style="flex:1"><div class="lbname">' + s.name + '</div></div>';
     h += '<div class="lbdist">' + valFn(s) + '</div></div>';
   }
+  
+  // ===== NEARBY RANKS (around user) =====
+  if (myRank >= 0 && myRank > 5) {
+    // Show "..." separator
+    h += '<div style="text-align:center; color:#94a3b8; padding:6px; font-size:14px; font-weight:700;">⋯</div>';
+    h += '<div style="color:#7c3aed; font-size:10px; font-weight:700; margin:4px 0 4px 4px; letter-spacing:1px;">📍 NEAR YOU</div>';
+    
+    // Show 3 above and 3 below user
+    var startNear = Math.max(3, myRank - 3);
+    var endNear = Math.min(data.length, myRank + 4);
+    
+    for (var i = startNear; i < endNear; i++) {
+      var s = data[i];
+      var isMe = s.id === myDocId;
+      var rankDisp = i < 3 ? rk[i] : '#'+(i+1);
+      h += '<div class="lbrow' + (isMe ? ' lbyou' : '') + '" id="lbrow_' + i + '">';
+      h += '<div class="lbrank">' + rankDisp + '</div>';
+      h += '<div style="flex:1"><div class="lbname">' + s.name + '</div></div>';
+      h += '<div class="lbdist">' + valFn(s) + '</div></div>';
+    }
+  } else {
+    // User is in top 6, just show ranks 4-15
+    h += '<div style="color:#7c3aed; font-size:10px; font-weight:700; margin:8px 0 4px 4px; letter-spacing:1px;">📊 RANKINGS</div>';
+    for (var i = 3; i < Math.min(data.length, 15); i++) {
+      var s = data[i];
+      var isMe = s.id === myDocId;
+      var rankDisp = '#'+(i+1);
+      h += '<div class="lbrow' + (isMe ? ' lbyou' : '') + '" id="lbrow_' + i + '">';
+      h += '<div class="lbrank">' + rankDisp + '</div>';
+      h += '<div style="flex:1"><div class="lbname">' + s.name + '</div></div>';
+      h += '<div class="lbdist">' + valFn(s) + '</div></div>';
+    }
+  }
+  
+  // ===== SHOW MORE SECTION =====
+  if (data.length > 15) {
+    h += '<div style="text-align:center; padding:10px; color:#7c3aed; font-size:11px; font-weight:700; cursor:pointer;" onclick="showAllRanks()">⬇️ View Top 50</div>';
+    h += '<div id="lball" style="display:none;">';
+    h += '<div style="color:#7c3aed; font-size:10px; font-weight:700; margin:4px 0 4px 4px; letter-spacing:1px;">📊 ALL RANKINGS</div>';
+    var maxShow = Math.min(data.length, 50);
+    for (var i = 0; i < maxShow; i++) {
+      var s = data[i];
+      var isMe = s.id === myDocId;
+      var rankDisp = i < 3 ? rk[i] : '#'+(i+1);
+      h += '<div class="lbrow' + (isMe ? ' lbyou' : '') + '" id="lbrowall_' + i + '">';
+      h += '<div class="lbrank">' + rankDisp + '</div>';
+      h += '<div style="flex:1"><div class="lbname">' + s.name + '</div></div>';
+      h += '<div class="lbdist">' + valFn(s) + '</div></div>';
+    }
+    h += '</div>';
+  }
+  
   list.innerHTML = h;
+}
+
+// Function to scroll to user's rank
+function scrollToMyRank() {
+  var data = scores.slice();
+  if (curTab==='total') data.sort(function(a,b){ return b.total - a.total; });
+  else if (curTab==='hits') data.sort(function(a,b){ return b.hits - a.hits; });
+  else data.sort(function(a,b){ return b.dist - a.dist; });
+  
+  var myRank = -1;
+  for (var i = 0; i < data.length; i++) {
+    if (data[i].id === myDocId) {
+      myRank = i;
+      break;
+    }
+  }
+  
+  if (myRank < 0) return;
+  
+  // First, expand "all rankings" if not visible
+  var allList = document.getElementById('lball');
+  if (allList && allList.style.display === 'none') {
+    showAllRanks();
+  }
+  
+  // Find and scroll to the row
+  setTimeout(function() {
+    var myRow = document.getElementById('lbrowall_' + myRank);
+    if (!myRow) myRow = document.getElementById('lbrow_' + myRank);
+    if (myRow) {
+      myRow.scrollIntoView({behavior:'smooth', block:'center'});
+      // Flash animation
+      myRow.style.transition = 'all 0.3s';
+      myRow.style.transform = 'scale(1.05)';
+      setTimeout(function() { myRow.style.transform = 'scale(1)'; }, 300);
+    }
+  }, 100);
+}
+
+// Function to show all rankings
+function showAllRanks() {
+  var allList = document.getElementById('lball');
+  if (allList) {
+    allList.style.display = allList.style.display === 'none' ? 'block' : 'none';
+  }
 }
 
 // -- BALL TYPES --
