@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.timurpiker.homerungame" version="1.0.17" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.timurpiker.homerungame" version="1.0.20" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Hit Ball Homerun Free Play</name>
     <description>The ultimate baseball hitting game! Flick to hit amazing home runs through space. Unlock Silver, Gold &amp; Diamond balls as you journey from the stadium to the cosmos.</description>
     <author email="timurpiker@gmail.com" href="https://github.com/timurpik1985">Timur Piker</author>
@@ -59,7 +59,8 @@
             <string>This allows us to show you personalized ads to support the free version of the game.</string>
         </edit-config>
 
-        <!-- Required by Google Mobile Ads SDK. Real AdMob iOS App ID. -->
+        <!-- Required by Google Mobile Ads SDK. Production AdMob iOS App ID. -->
+        <!-- Real App ID already inserted. -->
         <edit-config file="*-Info.plist" mode="merge" target="GADApplicationIdentifier">
             <string>ca-app-pub-1629985022407089~9813154293</string>
         </edit-config>
@@ -69,7 +70,8 @@
     <plugin name="cordova-plugin-wkwebview-engine" source="npm" />
     <plugin name="cordova-plugin-statusbar" source="npm" />
 
-    <!-- Google AdMob plugin. Real AdMob iOS App ID. -->
+    <!-- Required for TestFlight rewarded ads. Uses real production iOS App ID. -->
+    <!-- Real App ID already inserted. -->
     <plugin name="admob-plus-cordova" source="npm">
         <variable name="APP_ID_IOS" value="ca-app-pub-1629985022407089~9813154293" />
     </plugin>
