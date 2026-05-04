@@ -111,86 +111,69 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
 <!-- AdMob will be loaded via Cordova plugin in mobile app -->
 <!-- For Cordova: cordova plugin add cordova-plugin-admob-free -->
 
-<!-- PRIVACY CONSENT MODAL - Shows on first launch -->
-<div id="consentModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:9999; padding:20px; padding-top:max(20px, env(safe-area-inset-top)); padding-bottom:max(20px, env(safe-area-inset-bottom)); overflow-y:auto;">
-  <div style="max-width:500px; margin:0 auto; background:linear-gradient(135deg, #1e1b4b, #312e81); border:2px solid #fbbf24; border-radius:16px; padding:20px; box-shadow:0 0 30px rgba(251,191,36,0.5);">
+<!-- PRIVACY CONSENT MODAL - Minimal & Quick -->
+<div id="consentModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:9999; padding:20px; padding-top:max(20px, env(safe-area-inset-top)); padding-bottom:max(20px, env(safe-area-inset-bottom)); align-items:center; justify-content:center;">
+  <div style="max-width:420px; width:100%; background:linear-gradient(135deg, #1e1b4b, #312e81); border:2px solid #fbbf24; border-radius:20px; padding:28px 22px; box-shadow:0 0 30px rgba(251,191,36,0.5); text-align:center;">
     
     <!-- Header -->
-    <div style="text-align:center; margin-bottom:20px;">
-      <div style="font-size:50px; margin-bottom:10px;">⚾</div>
-      <h2 style="color:#fbbf24; font-size:22px; font-weight:900; margin:0 0 8px 0;">Welcome to Hit Ball Homerun!</h2>
-      <p style="color:#cbd5e1; font-size:13px; margin:0;">Before you start playing, please review:</p>
+    <div style="font-size:60px; margin-bottom:8px;">⚾</div>
+    <h2 style="color:#fbbf24; font-size:24px; font-weight:900; margin:0 0 6px 0;">Hit Ball Homerun!</h2>
+    <p style="color:#cbd5e1; font-size:14px; margin:0 0 4px 0;">FREE Game with Video Ads</p>
+    <div style="background:#10b981; color:#fff; display:inline-block; padding:4px 14px; border-radius:20px; font-size:11px; font-weight:700; margin-top:6px; margin-bottom:20px;">
+      👨‍👩‍👧‍👦 Family-Friendly (4+)
     </div>
     
-    <!-- Content -->
-    <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:15px; margin-bottom:15px;">
-      <h3 style="color:#a78bfa; font-size:14px; margin:0 0 10px 0; display:flex; align-items:center; gap:8px;">
-        <span>📺</span> Video Ads
-      </h3>
-      <p style="color:#e2e8f0; font-size:12px; line-height:1.5; margin:0 0 12px 0;">
-        This game is <strong style="color:#4ade80;">FREE</strong> and supported by Google AdMob video ads. You can watch ads to unlock special balls (Silver, Gold, Diamond)!
-      </p>
-      
-      <h3 style="color:#a78bfa; font-size:14px; margin:15px 0 10px 0; display:flex; align-items:center; gap:8px;">
-        <span>🔒</span> Your Privacy
-      </h3>
-      <p style="color:#e2e8f0; font-size:12px; line-height:1.5; margin:0 0 12px 0;">
-        We collect minimal data to show ads and improve gameplay:
-      </p>
-      <ul style="color:#cbd5e1; font-size:11px; margin:5px 0 12px 20px; padding:0;">
-        <li>Device identifiers for ad targeting</li>
-        <li>Approximate location (country/region)</li>
-        <li>App usage and game scores</li>
-      </ul>
-      
-      <h3 style="color:#a78bfa; font-size:14px; margin:15px 0 10px 0; display:flex; align-items:center; gap:8px;">
-        <span>👶</span> Age Recommendation
-      </h3>
-      <p style="color:#e2e8f0; font-size:12px; line-height:1.5; margin:0;">
-        Recommended for ages <strong style="color:#fbbf24;">13+</strong>. Not directed at children under 13.
-      </p>
-    </div>
+    <!-- Brief description -->
+    <p style="color:#e2e8f0; font-size:13px; line-height:1.5; margin:0 0 16px 0;">
+      We use Google AdMob to show family-friendly ads. Watch ads to unlock special balls!
+    </p>
     
-    <!-- Privacy Policy Link -->
-    <div style="text-align:center; margin-bottom:15px;">
-      <a href="https://timurpik1985.github.io/hit-ball-homerun-ios/privacy.html" target="_blank" 
-         style="color:#7dd3fc; font-size:13px; text-decoration:underline; font-weight:700;">
-        📄 Read Full Privacy Policy
-      </a>
-    </div>
-    
-    <!-- Checkbox -->
-    <label style="display:flex; align-items:center; gap:10px; padding:10px; background:rgba(124,58,237,0.2); border-radius:8px; margin-bottom:15px; cursor:pointer;">
-      <input type="checkbox" id="consentCheckbox" style="width:20px; height:20px; cursor:pointer;">
-      <span style="color:#fff; font-size:13px; font-weight:600;">
-        I am 13 years or older and accept the Privacy Policy & Terms
-      </span>
-    </label>
-    
-    <!-- Buttons -->
-    <div style="display:flex; gap:10px;">
-      <button onclick="declineConsent()" 
-              style="flex:1; padding:14px; background:#475569; border:none; color:#fff; font-size:14px; font-weight:700; border-radius:10px; cursor:pointer;">
-        Decline
-      </button>
-      <button id="acceptConsentBtn" onclick="acceptConsent()" disabled
-              style="flex:2; padding:14px; background:linear-gradient(45deg, #16a34a, #22c55e); border:none; color:#fff; font-size:15px; font-weight:900; border-radius:10px; cursor:pointer; opacity:0.5;">
-        ✅ Accept & Play
+    <!-- Details Toggle (collapsible) -->
+    <div style="margin-bottom:16px;">
+      <button onclick="toggleConsentDetails()" id="detailsToggle"
+              style="background:transparent; border:1px solid #7c3aed; color:#a78bfa; padding:6px 14px; font-size:11px; font-weight:600; border-radius:6px; cursor:pointer;">
+        ℹ️ Privacy Details
       </button>
     </div>
     
-    <p style="color:#64748b; font-size:10px; text-align:center; margin-top:15px; line-height:1.4;">
-      By accepting, you consent to data collection as described.<br>
-      You can change settings anytime in iOS Settings → Privacy.
+    <!-- Hidden details (shown when clicked) -->
+    <div id="consentDetails" style="display:none; background:rgba(255,255,255,0.05); border-radius:10px; padding:14px; margin-bottom:18px; text-align:left;">
+      <p style="color:#e2e8f0; font-size:11px; line-height:1.5; margin:0 0 8px 0;">
+        <strong style="color:#a78bfa;">📺 Ads:</strong> Family-friendly ads via Google AdMob
+      </p>
+      <p style="color:#e2e8f0; font-size:11px; line-height:1.5; margin:0 0 8px 0;">
+        <strong style="color:#a78bfa;">🔒 Data:</strong> Anonymous device ID and country (for ads only)
+      </p>
+      <p style="color:#e2e8f0; font-size:11px; line-height:1.5; margin:0 0 8px 0;">
+        <strong style="color:#a78bfa;">📊 Game:</strong> Scores stored locally on your device
+      </p>
+      <p style="color:#e2e8f0; font-size:11px; line-height:1.5; margin:0;">
+        <strong style="color:#a78bfa;">📄 Full Policy:</strong> <a href="https://timurpik1985.github.io/hit-ball-homerun-ios/privacy.html" target="_blank" style="color:#7dd3fc; text-decoration:underline;">Read here</a>
+      </p>
+    </div>
+    
+    <!-- Single Big Action Button -->
+    <button onclick="acceptConsent()" 
+            style="width:100%; padding:16px; background:linear-gradient(45deg, #16a34a, #22c55e); border:none; color:#fff; font-size:17px; font-weight:900; border-radius:12px; cursor:pointer; box-shadow:0 4px 15px rgba(34,197,94,0.5); margin-bottom:8px;">
+      ⚾ Let's Play!
+    </button>
+    
+    <!-- Tiny decline link -->
+    <button onclick="declineConsent()" 
+            style="background:transparent; border:none; color:#64748b; font-size:11px; cursor:pointer; text-decoration:underline; padding:6px;">
+      No thanks
+    </button>
+    
+    <p style="color:#475569; font-size:9px; text-align:center; margin-top:8px; line-height:1.3;">
+      By tapping "Let's Play!" you accept our Privacy Policy
     </p>
     
   </div>
 </div>
 
 <script>
-// Privacy Consent Logic
+// Privacy Consent Logic - Minimal Version
 (function() {
-  // Check if user already consented
   function hasConsented() {
     try {
       return localStorage.getItem('privacyConsent') === 'accepted';
@@ -198,8 +181,8 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
   }
   
   function showConsentModal() {
-    document.getElementById('consentModal').style.display = 'block';
-    // Pause game initialization until consent
+    var modal = document.getElementById('consentModal');
+    modal.style.display = 'flex';
     if (typeof pauseGame === 'function') pauseGame();
   }
   
@@ -207,17 +190,18 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
     document.getElementById('consentModal').style.display = 'none';
   }
   
-  // Enable accept button only when checkbox is checked
-  document.getElementById('consentCheckbox').addEventListener('change', function() {
-    var btn = document.getElementById('acceptConsentBtn');
-    if (this.checked) {
-      btn.disabled = false;
-      btn.style.opacity = '1';
+  // Toggle details visibility
+  window.toggleConsentDetails = function() {
+    var details = document.getElementById('consentDetails');
+    var btn = document.getElementById('detailsToggle');
+    if (details.style.display === 'none') {
+      details.style.display = 'block';
+      btn.innerHTML = '🔼 Hide Details';
     } else {
-      btn.disabled = true;
-      btn.style.opacity = '0.5';
+      details.style.display = 'none';
+      btn.innerHTML = 'ℹ️ Privacy Details';
     }
-  });
+  };
   
   window.acceptConsent = function() {
     try {
@@ -226,21 +210,17 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
     } catch(e) {}
     hideConsentModal();
     
-    // Request iOS App Tracking Transparency permission
     if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.idfa) {
       cordova.plugins.idfa.requestPermission().then(function(result) {
         console.log('ATT result:', result);
       });
     }
     
-    // Resume game
     if (typeof resumeGame === 'function') resumeGame();
   };
   
   window.declineConsent = function() {
-    var msg = 'Without consent, the game cannot show ads to support development. ' +
-              'You can still play, but special ball unlocks via video ads will not be available. Continue anyway?';
-    if (confirm(msg)) {
+    if (confirm('Without consent, you cannot use video ads to unlock special balls. Continue?')) {
       try {
         localStorage.setItem('privacyConsent', 'declined');
       } catch(e) {}
@@ -251,7 +231,6 @@ body{position:fixed;top:0;left:0;right:0;bottom:0;font-family:Arial,sans-serif;
   
   // Show modal on first launch
   if (!hasConsented()) {
-    // Wait for DOM to be ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', showConsentModal);
     } else {
