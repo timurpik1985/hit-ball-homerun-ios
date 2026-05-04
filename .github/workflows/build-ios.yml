@@ -29,14 +29,9 @@ jobs:
             sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
             echo "Selected Xcode 16.1"
           else
-            LATEST=$(ls /Applications/ | grep -i "Xcode" | sort -V | tail -1)
-            if [ -n "$LATEST" ]; then
-              sudo xcode-select -s "/Applications/$LATEST/Contents/Developer"
-              echo "Selected $LATEST"
-            else
-              echo "ERROR: No Xcode found"
-              exit 1
-            fi
+            echo "ERROR: Xcode 16.x not found on runner"
+            ls /Applications/ | grep -i Xcode || true
+            exit 1
           fi
 
           xcodebuild -version
@@ -88,29 +83,44 @@ jobs:
 
       - name: Patch AdMob Plus Swift Compatibility
         run: |
-          echo "Patching admob-plus-cordova Swift files..."
+          echo "Patching all admob-plus-cordova Swift files..."
 
-          AMB_CONTEXT=$(find platforms/ios -path "*/Plugins/admob-plus-cordova/AMBContext.swift" | head -n 1)
-          AMB_PLUGIN=$(find platforms/ios -path "*/Plugins/admob-plus-cordova/AMBPlugin.swift" | head -n 1)
+          ADMOB_DIR=$(find platforms/ios -path "*/Plugins/admob-plus-cordova" -type d | head -n 1)
 
-          if [ -z "$AMB_CONTEXT" ] || [ -z "$AMB_PLUGIN" ]; then
-            echo "ERROR: admob-plus-cordova Swift files not found."
+          if [ -z "$ADMOB_DIR" ]; then
+            echo "ERROR: admob-plus-cordova plugin directory not found."
             find platforms/ios -path "*admob*" -type f || true
             exit 1
           fi
 
-          echo "Found AMBContext: $AMB_CONTEXT"
-          echo "Found AMBPlugin: $AMB_PLUGIN"
+          echo "AdMob plugin dir: $ADMOB_DIR"
+          echo "Swift files before patch:"
+          find "$ADMOB_DIR" -name "*.swift" -maxdepth 1 -print
 
-          # Cordova iOS compatibility patch.
-          perl -0pi -e 's/self\.commandDelegate\.send\(message, callbackId: command\.callbackId\)/self.commandDelegate.send(message, callbackId: command.callbackId!)/g' "$AMB_CONTEXT"
-          perl -0pi -e 's/result\?\.setKeepCallbackAs\(true\)/result.setKeepCallbackAs(true)/g' "$AMB_PLUGIN"
-          perl -0pi -e 's/CDVCommandStatus_OK/CDVCommandStatus.ok/g' "$AMB_PLUGIN"
+          # 1) Cordova iOS callbackId became optional in newer versions.
+          # Patch every occurrence, not only AMBContext.
+          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/callbackId: command\.callbackId\)/callbackId: command.callbackId!\)/g'
+
+          # 2) CDVPluginResult initializer returns a non-optional object now.
+          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/result\?\.setKeepCallbackAs\(true\)/result.setKeepCallbackAs(true)/g'
+
+          # 3) Old Cordova enum name.
+          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/CDVCommandStatus_OK/CDVCommandStatus.ok/g'
+
+          # 4) Cordova plugin.viewController is optional in current headers.
+          # Google Mobile Ads present(...) requires a non-optional UIViewController.
+          # This is the new failure visible in #39 around AMBRewarded / AMBRewardedInterstitial.
+          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/fromRootViewController: plugin\.viewController/fromRootViewController: plugin.viewController!/g'
+
+          # 5) Some versions use the modern Swift GMA call form with rootViewController label.
+          find "$ADMOB_DIR" -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/rootViewController: plugin\.viewController/rootViewController: plugin.viewController!/g'
 
           echo "Patch confirmation:"
-          grep -n "commandDelegate.send(message" "$AMB_CONTEXT" || true
-          grep -n "setKeepCallbackAs" "$AMB_PLUGIN" || true
-          grep -n "CDVPluginResult(status" "$AMB_PLUGIN" || true
+          grep -RIn "command.callbackId" "$ADMOB_DIR" || true
+          grep -RIn "setKeepCallbackAs" "$ADMOB_DIR" || true
+          grep -RIn "CDVPluginResult(status" "$ADMOB_DIR" || true
+          grep -RIn "fromRootViewController: plugin.viewController" "$ADMOB_DIR" || true
+          grep -RIn "rootViewController: plugin.viewController" "$ADMOB_DIR" || true
 
       - name: Verify ATT and AdMob Plist Keys
         run: |
@@ -140,8 +150,10 @@ jobs:
         if: failure()
         run: |
           echo "=== Swift/Xcode errors from build log ==="
-          grep -n -i -C 8 "error:" "$RUNNER_TEMP/cordova-build.log" || true
-          grep -n -i -C 8 "failed" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 10 "error:" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 10 "value of optional" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 10 "cannot use optional" "$RUNNER_TEMP/cordova-build.log" || true
+          grep -n -i -C 10 "failed" "$RUNNER_TEMP/cordova-build.log" || true
 
       - name: Upload Build Log If Failed
         if: failure()
