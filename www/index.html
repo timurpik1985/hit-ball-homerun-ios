@@ -1052,12 +1052,12 @@ function skipVideoAd() {
 }
 
 // ADMOB INTEGRATION SYSTEM - TestFlight ad-test version
-// Uses Google official iOS TEST IDs so TestFlight can show ads safely.
-// BEFORE APP STORE REVIEW / PRODUCTION: replace both IDs with your real AdMob IDs.
+// PRODUCTION AdMob IDs - Real production IDs for App Store release
 // App ID format uses ~ and belongs in config.xml too.
-// Rewarded Unit ID format uses / and is used here in JavaScript.
-var ADMOB_APP_ID = 'ca-app-pub-3940256099942544~1458002511';
+// Unit IDs format uses / and are used here in JavaScript.
+var ADMOB_APP_ID = 'ca-app-pub-1629985022407089~9813154293';
 var ADMOB_REWARDED_ID = 'ca-app-pub-1629985022407089/9323245887';
+var ADMOB_INTERSTITIAL_ID = 'ca-app-pub-1629985022407089/5275143485';
 var admobInitialized = false;
 var rewardedAdReady = false;
 var rewardedAdObject = null;
@@ -1127,6 +1127,85 @@ async function loadAdMobPlusRewarded() {
   }
 }
 
+// ============================================
+// INTERSTITIAL AD SUPPORT (Game Start Ad)
+// ============================================
+var interstitialAdReady = false;
+var interstitialAdObject = null;
+var lastInterstitialTime = 0;
+var INTERSTITIAL_COOLDOWN = 60000; // 60 seconds minimum between interstitials
+var ballsBeforeNextInterstitial = 10; // Show interstitial every X balls
+
+async function loadAdMobPlusInterstitial() {
+  if (typeof admob === 'undefined' || !admob.InterstitialAd) {
+    console.log('AdMob InterstitialAd not available');
+    return;
+  }
+  try {
+    interstitialAdReady = false;
+    interstitialAdObject = new admob.InterstitialAd({ adUnitId: ADMOB_INTERSTITIAL_ID });
+
+    interstitialAdObject.on('load', function() {
+      interstitialAdReady = true;
+      console.log('AdMob Interstitial ad loaded.');
+    });
+    interstitialAdObject.on('loadfail', function(evt) {
+      interstitialAdReady = false;
+      console.log('AdMob Interstitial ad load failed:', evt && evt.message ? evt.message : evt);
+    });
+    interstitialAdObject.on('showfail', function(evt) {
+      interstitialAdReady = false;
+      console.log('AdMob Interstitial ad show failed:', evt && evt.message ? evt.message : evt);
+    });
+    interstitialAdObject.on('dismiss', async function() {
+      interstitialAdReady = false;
+      // Reload for next time
+      try { await interstitialAdObject.load(); } catch(e) { console.log('Reload interstitial failed:', e); }
+    });
+
+    await interstitialAdObject.load();
+  } catch (e) {
+    interstitialAdReady = false;
+    console.log('AdMob Interstitial initialization/load failed:', e && e.message ? e.message : e);
+  }
+}
+
+function canShowInterstitial() {
+  var allowed = typeof areRewardedAdsAllowed === 'function' && areRewardedAdsAllowed();
+  if (!allowed || !admobInitialized || !ADMOB_INTERSTITIAL_ID) return false;
+  if (!interstitialAdReady || !interstitialAdObject) return false;
+  // Check cooldown - don't show ads too frequently
+  var now = Date.now();
+  if (now - lastInterstitialTime < INTERSTITIAL_COOLDOWN) return false;
+  return true;
+}
+
+async function showInterstitialAd() {
+  if (!canShowInterstitial()) {
+    console.log('Interstitial not ready or in cooldown');
+    return false;
+  }
+  try {
+    lastInterstitialTime = Date.now();
+    await interstitialAdObject.show();
+    console.log('Interstitial ad shown');
+    return true;
+  } catch (e) {
+    console.log('Failed to show interstitial:', e && e.message ? e.message : e);
+    return false;
+  }
+}
+
+// Function to call after every X balls hit
+function tryShowInterstitialAfterBalls() {
+  ballCountForAd++;
+  if (ballCountForAd >= ballsBeforeNextInterstitial) {
+    ballCountForAd = 0;
+    showInterstitialAd();
+  }
+}
+// ============================================
+
 function initAdMob() {
   if (typeof areRewardedAdsAllowed === 'function' && !areRewardedAdsAllowed()) {
     admobInitialized = false;
@@ -1148,8 +1227,10 @@ function initAdMob() {
   try {
     if (mode === 'admob-plus') {
       admobInitialized = true;
-      console.log('AdMob Plus detected. Loading rewarded TEST ad:', ADMOB_REWARDED_ID);
+      console.log('AdMob Plus detected. Loading rewarded ad:', ADMOB_REWARDED_ID);
       loadAdMobPlusRewarded();
+      console.log('Loading interstitial ad:', ADMOB_INTERSTITIAL_ID);
+      loadAdMobPlusInterstitial();
       updateAdUiAvailability();
       return;
     }
@@ -3104,6 +3185,11 @@ function finishBall(b){
       setTimeout(function() {
         showRingTutorialPopup();
       }, 1500);
+    }
+    
+    // Show interstitial ad every 10 hits (Game Start Ad)
+    if (typeof tryShowInterstitialAfterBalls === 'function') {
+      tryShowInterstitialAfterBalls();
     }
     
     sfxLand(finalM);
