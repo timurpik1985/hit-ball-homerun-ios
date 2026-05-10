@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.timurpiker.homerungame" version="1.0.27" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.timurpiker.homerungame" version="1.0.28" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Hit Ball Championship</name>
     <description>Compete in the ultimate baseball championship! Flick to hit amazing home runs through space. Unlock Silver, Gold and Diamond balls as you journey from the stadium to the cosmos. Climb the global leaderboard and become a champion!</description>
     <author email="timurpiker@gmail.com" href="https://github.com/timurpik1985">Timur Piker</author>
@@ -133,6 +133,6 @@
         <variable name="APP_ID_IOS" value="ca-app-pub-1629985022407089~9813154293" />
     </plugin>
 
-    <!-- IDFA Plugin for App Tracking Transparency -->
-    <plugin name="cordova-plugin-idfa" spec="^0.6.0" source="npm" />
+    <!-- App Tracking Transparency Plugin -->
+    <plugin name="cordova-plugin-tracking-transparency" source="npm" />
 </widget>
