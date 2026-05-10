@@ -225,12 +225,17 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
   };
 
   function requestATTIfAvailable(done) {
-    // Cordova IDFA plugin path. The iOS wrapper must include NSUserTrackingUsageDescription in Info.plist.
+    // Uses cordova-plugin-app-tracking-transparency
+    // The iOS wrapper must include NSUserTrackingUsageDescription in Info.plist.
     try {
-      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.idfa && cordova.plugins.idfa.requestPermission) {
-        cordova.plugins.idfa.requestPermission().then(function(result) {
-          window.trackingAuthorizationStatus = (result && (result.status || result.trackingPermission)) || String(result || 'unknown');
-          console.log('ATT result:', window.trackingAuthorizationStatus);
+      // Check for the correct ATT plugin
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.AppTrackingTransparency) {
+        console.log('ATT plugin found, requesting tracking permission...');
+        
+        cordova.plugins.AppTrackingTransparency.requestPermission().then(function(result) {
+          // Result will be: authorized, denied, restricted, or notDetermined
+          window.trackingAuthorizationStatus = result.status || 'unknown';
+          console.log('ATT permission result:', window.trackingAuthorizationStatus);
           done();
         }).catch(function(err) {
           window.trackingAuthorizationStatus = 'denied';
@@ -239,6 +244,22 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
         });
         return;
       }
+      
+      // Fallback: check for old idfa plugin (backwards compatibility)
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.idfa && cordova.plugins.idfa.requestPermission) {
+        console.log('Using legacy IDFA plugin...');
+        cordova.plugins.idfa.requestPermission().then(function(result) {
+          window.trackingAuthorizationStatus = (result && (result.status || result.trackingPermission)) || String(result || 'unknown');
+          console.log('Legacy ATT result:', window.trackingAuthorizationStatus);
+          done();
+        }).catch(function(err) {
+          window.trackingAuthorizationStatus = 'denied';
+          console.log('Legacy ATT failed:', err && err.message ? err.message : err);
+          done();
+        });
+        return;
+      }
+      
     } catch(e) {
       window.trackingAuthorizationStatus = 'denied';
       console.log('ATT handling error:', e && e.message ? e.message : e);
@@ -1052,12 +1073,12 @@ function skipVideoAd() {
 }
 
 // ADMOB INTEGRATION SYSTEM - TestFlight ad-test version
-// PRODUCTION AdMob IDs - Real production IDs for App Store release
+// Uses Google official iOS TEST IDs so TestFlight can show ads safely.
+// BEFORE APP STORE REVIEW / PRODUCTION: replace both IDs with your real AdMob IDs.
 // App ID format uses ~ and belongs in config.xml too.
-// Unit IDs format uses / and are used here in JavaScript.
-var ADMOB_APP_ID = 'ca-app-pub-1629985022407089~9813154293';
+// Rewarded Unit ID format uses / and is used here in JavaScript.
+var ADMOB_APP_ID = 'ca-app-pub-3940256099942544~1458002511';
 var ADMOB_REWARDED_ID = 'ca-app-pub-1629985022407089/9323245887';
-var ADMOB_INTERSTITIAL_ID = 'ca-app-pub-1629985022407089/5275143485';
 var admobInitialized = false;
 var rewardedAdReady = false;
 var rewardedAdObject = null;
@@ -1127,85 +1148,6 @@ async function loadAdMobPlusRewarded() {
   }
 }
 
-// ============================================
-// INTERSTITIAL AD SUPPORT (Game Start Ad)
-// ============================================
-var interstitialAdReady = false;
-var interstitialAdObject = null;
-var lastInterstitialTime = 0;
-var INTERSTITIAL_COOLDOWN = 60000; // 60 seconds minimum between interstitials
-var ballsBeforeNextInterstitial = 10; // Show interstitial every X balls
-
-async function loadAdMobPlusInterstitial() {
-  if (typeof admob === 'undefined' || !admob.InterstitialAd) {
-    console.log('AdMob InterstitialAd not available');
-    return;
-  }
-  try {
-    interstitialAdReady = false;
-    interstitialAdObject = new admob.InterstitialAd({ adUnitId: ADMOB_INTERSTITIAL_ID });
-
-    interstitialAdObject.on('load', function() {
-      interstitialAdReady = true;
-      console.log('AdMob Interstitial ad loaded.');
-    });
-    interstitialAdObject.on('loadfail', function(evt) {
-      interstitialAdReady = false;
-      console.log('AdMob Interstitial ad load failed:', evt && evt.message ? evt.message : evt);
-    });
-    interstitialAdObject.on('showfail', function(evt) {
-      interstitialAdReady = false;
-      console.log('AdMob Interstitial ad show failed:', evt && evt.message ? evt.message : evt);
-    });
-    interstitialAdObject.on('dismiss', async function() {
-      interstitialAdReady = false;
-      // Reload for next time
-      try { await interstitialAdObject.load(); } catch(e) { console.log('Reload interstitial failed:', e); }
-    });
-
-    await interstitialAdObject.load();
-  } catch (e) {
-    interstitialAdReady = false;
-    console.log('AdMob Interstitial initialization/load failed:', e && e.message ? e.message : e);
-  }
-}
-
-function canShowInterstitial() {
-  var allowed = typeof areRewardedAdsAllowed === 'function' && areRewardedAdsAllowed();
-  if (!allowed || !admobInitialized || !ADMOB_INTERSTITIAL_ID) return false;
-  if (!interstitialAdReady || !interstitialAdObject) return false;
-  // Check cooldown - don't show ads too frequently
-  var now = Date.now();
-  if (now - lastInterstitialTime < INTERSTITIAL_COOLDOWN) return false;
-  return true;
-}
-
-async function showInterstitialAd() {
-  if (!canShowInterstitial()) {
-    console.log('Interstitial not ready or in cooldown');
-    return false;
-  }
-  try {
-    lastInterstitialTime = Date.now();
-    await interstitialAdObject.show();
-    console.log('Interstitial ad shown');
-    return true;
-  } catch (e) {
-    console.log('Failed to show interstitial:', e && e.message ? e.message : e);
-    return false;
-  }
-}
-
-// Function to call after every X balls hit
-function tryShowInterstitialAfterBalls() {
-  ballCountForAd++;
-  if (ballCountForAd >= ballsBeforeNextInterstitial) {
-    ballCountForAd = 0;
-    showInterstitialAd();
-  }
-}
-// ============================================
-
 function initAdMob() {
   if (typeof areRewardedAdsAllowed === 'function' && !areRewardedAdsAllowed()) {
     admobInitialized = false;
@@ -1227,10 +1169,8 @@ function initAdMob() {
   try {
     if (mode === 'admob-plus') {
       admobInitialized = true;
-      console.log('AdMob Plus detected. Loading rewarded ad:', ADMOB_REWARDED_ID);
+      console.log('AdMob Plus detected. Loading rewarded TEST ad:', ADMOB_REWARDED_ID);
       loadAdMobPlusRewarded();
-      console.log('Loading interstitial ad:', ADMOB_INTERSTITIAL_ID);
-      loadAdMobPlusInterstitial();
       updateAdUiAvailability();
       return;
     }
@@ -3185,11 +3125,6 @@ function finishBall(b){
       setTimeout(function() {
         showRingTutorialPopup();
       }, 1500);
-    }
-    
-    // Show interstitial ad every 10 hits (Game Start Ad)
-    if (typeof tryShowInterstitialAfterBalls === 'function') {
-      tryShowInterstitialAfterBalls();
     }
     
     sfxLand(finalM);
