@@ -225,22 +225,32 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
   };
 
   function requestATTIfAvailable(done) {
-    // Uses cordova-plugin-app-tracking-transparency
-    // The iOS wrapper must include NSUserTrackingUsageDescription in Info.plist.
+    // Uses cordova-plugin-tracking-transparency
+    // API: window.plugins.impacTracking
     try {
-      // Check for the correct ATT plugin
-      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.AppTrackingTransparency) {
-        console.log('ATT plugin found, requesting tracking permission...');
+      // Check for cordova-plugin-tracking-transparency
+      if (typeof window !== 'undefined' && window.plugins && window.plugins.impacTracking) {
+        console.log('cordova-plugin-tracking-transparency found, requesting permission...');
         
-        cordova.plugins.AppTrackingTransparency.requestPermission().then(function(result) {
-          // Result will be: authorized, denied, restricted, or notDetermined
-          window.trackingAuthorizationStatus = result.status || 'unknown';
-          console.log('ATT permission result:', window.trackingAuthorizationStatus);
-          done();
-        }).catch(function(err) {
-          window.trackingAuthorizationStatus = 'denied';
-          console.log('ATT request failed:', err && err.message ? err.message : err);
-          done();
+        // First check if tracking is available (iOS 14.5+)
+        window.plugins.impacTracking.trackingAvailable(function(available) {
+          if (!available) {
+            console.log('ATT not available on this device/OS');
+            window.trackingAuthorizationStatus = 'notAvailable';
+            done();
+            return;
+          }
+          
+          // Request tracking permission
+          window.plugins.impacTracking.requestTracking(undefined, function(authorized) {
+            window.trackingAuthorizationStatus = authorized ? 'authorized' : 'denied';
+            console.log('ATT result:', window.trackingAuthorizationStatus);
+            done();
+          }, function(error) {
+            window.trackingAuthorizationStatus = 'denied';
+            console.log('ATT request error:', error);
+            done();
+          });
         });
         return;
       }
