@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.timurpiker.homerungame" version="1.0.28" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.timurpiker.homerungame" version="1.0.29" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Hit Ball Championship</name>
     <description>Compete in the ultimate baseball championship! Flick to hit amazing home runs through space. Unlock Silver, Gold and Diamond balls as you journey from the stadium to the cosmos. Climb the global leaderboard and become a champion!</description>
     <author email="timurpiker@gmail.com" href="https://github.com/timurpik1985">Timur Piker</author>
@@ -28,7 +28,8 @@
         <preference name="StatusBarBackgroundColor" value="#000000" />
         <preference name="StatusBarStyle" value="lightcontent" />
         
-        <preference name="target-device" value="handset" />
+        <!-- Support both iPhone AND iPad -->
+        <!-- Removed target-device restriction to allow iPad -->
         
         <icon src="res/ios/icon.png" width="1024" height="1024" />
         <icon src="res/ios/icon-20.png" width="20" height="20" />
@@ -61,9 +62,17 @@
             <true/>
         </edit-config>
 
+        <!-- Support both iPhone portrait AND iPad portrait -->
         <edit-config file="*-Info.plist" mode="merge" target="UISupportedInterfaceOrientations">
             <array>
                 <string>UIInterfaceOrientationPortrait</string>
+            </array>
+        </edit-config>
+        
+        <edit-config file="*-Info.plist" mode="merge" target="UISupportedInterfaceOrientations~ipad">
+            <array>
+                <string>UIInterfaceOrientationPortrait</string>
+                <string>UIInterfaceOrientationPortraitUpsideDown</string>
             </array>
         </edit-config>
 
@@ -119,6 +128,46 @@
                 <dict>
                     <key>SKAdNetworkIdentifier</key>
                     <string>424m5254lk.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>v72qych5uu.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>ludvb6z3bs.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>c6k4g5qg8m.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>wg4vff78zm.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>v9wttpbfk9.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>n38lu8286q.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>24t9a8vw3c.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>252b5q8x7y.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>294l99pt4k.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>32z4fx6l9h.skadnetwork</string>
                 </dict>
             </array>
         </edit-config>
