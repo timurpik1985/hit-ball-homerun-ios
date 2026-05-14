@@ -225,70 +225,95 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
   };
 
   function requestATTIfAvailable(done) {
-    // Use AdMob Plus's native ATT support via UMP (User Messaging Platform)
-    // This automatically triggers the official Apple ATT dialog
-    console.log('Requesting ATT via AdMob UMP SDK...');
+    console.log('[ATT] Requesting tracking authorization...');
+    
+    // IMPORTANT: We need to request ATT BEFORE initializing AdMob
+    // Use the iOS native ATTrackingManager via a simple eval call
     
     try {
-      // Check if AdMob Plus is available
-      if (typeof admob !== 'undefined' && admob.requestTrackingAuthorization) {
-        console.log('AdMob requestTrackingAuthorization found');
+      // Check if we're on iOS 14.5+
+      if (typeof cordova !== 'undefined' && cordova.platformId === 'ios') {
+        console.log('[ATT] On iOS, checking for ATT framework...');
         
-        // Use AdMob's built-in ATT request
-        admob.requestTrackingAuthorization().then(function(status) {
-          // Status: 0=notDetermined, 1=restricted, 2=denied, 3=authorized
-          var statusMap = {0: 'notDetermined', 1: 'restricted', 2: 'denied', 3: 'authorized'};
-          window.trackingAuthorizationStatus = statusMap[status] || 'unknown';
-          console.log('ATT status:', window.trackingAuthorizationStatus);
-          done();
-        }).catch(function(err) {
-          console.log('ATT request error:', err);
-          window.trackingAuthorizationStatus = 'error';
-          done();
-        });
-        return;
+        // Try to call iOS native ATT directly via Cordova exec
+        if (window.cordova && window.cordova.exec) {
+          console.log('[ATT] Attempting native ATT call via exec...');
+          
+          // This will fail gracefully if ATT framework isn't available
+          window.cordova.exec(
+            function(status) {
+              // Success - ATT prompt was shown
+              window.trackingAuthorizationStatus = status || 'unknown';
+              console.log('[ATT] Native call success:', status);
+              done();
+            },
+            function(error) {
+              // Error or not available
+              console.log('[ATT] Native call failed or unavailable:', error);
+              window.trackingAuthorizationStatus = 'unavailable';
+              done();
+            },
+            'ATTPlugin',
+            'requestPermission',
+            []
+          );
+          
+          // Set a timeout in case exec hangs
+          setTimeout(function() {
+            if (!window.trackingAuthorizationStatus) {
+              console.log('[ATT] Timeout - proceeding without ATT');
+              window.trackingAuthorizationStatus = 'timeout';
+              done();
+            }
+          }, 3000);
+          
+          return;
+        }
       }
       
-      // Fallback: Legacy plugins
-      if (typeof window !== 'undefined' && window.plugins && window.plugins.impacTracking) {
-        console.log('Using cordova-plugin-tracking-transparency');
-        window.plugins.impacTracking.trackingAvailable(function(available) {
-          if (!available) {
-            window.trackingAuthorizationStatus = 'notAvailable';
+      // Fallback: Try custom ATT plugin
+      if (typeof ATT !== 'undefined' && ATT.requestPermission) {
+        console.log('[ATT] Custom ATT plugin found');
+        ATT.requestPermission(
+          function(status) {
+            window.trackingAuthorizationStatus = status;
+            console.log('[ATT] Authorization result:', status);
             done();
-            return;
+          },
+          function(error) {
+            window.trackingAuthorizationStatus = 'error';
+            console.log('[ATT] Request failed:', error);
+            done();
           }
-          window.plugins.impacTracking.requestTracking(undefined, function(authorized) {
-            window.trackingAuthorizationStatus = authorized ? 'authorized' : 'denied';
-            console.log('ATT result:', window.trackingAuthorizationStatus);
-            done();
-          }, function(error) {
-            window.trackingAuthorizationStatus = 'denied';
-            done();
-          });
-        });
+        );
         return;
       }
       
-      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.idfa) {
-        console.log('Using cordova-plugin-idfa');
+      // Fallback: Try legacy idfa plugin
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.idfa && cordova.plugins.idfa.requestPermission) {
+        console.log('[ATT] Using legacy idfa plugin');
         cordova.plugins.idfa.requestPermission().then(function(result) {
-          window.trackingAuthorizationStatus = (result && result.status) || 'unknown';
+          window.trackingAuthorizationStatus = (result && (result.status || result.trackingPermission)) || String(result || 'unknown');
+          console.log('[ATT] Legacy result:', window.trackingAuthorizationStatus);
           done();
         }).catch(function(err) {
           window.trackingAuthorizationStatus = 'denied';
+          console.log('[ATT] Legacy failed:', err && err.message ? err.message : err);
           done();
         });
         return;
       }
       
     } catch(e) {
-      console.log('ATT error:', e);
+      window.trackingAuthorizationStatus = 'error';
+      console.log('[ATT] Exception:', e && e.message ? e.message : e);
     }
     
-    // No ATT available
-    console.log('No ATT plugin found');
+    // No ATT available - proceed anyway
+    console.log('[ATT] No ATT method available - proceeding');
     window.trackingAuthorizationStatus = 'unavailable';
+    done();
+  }
     done();
   }
 
