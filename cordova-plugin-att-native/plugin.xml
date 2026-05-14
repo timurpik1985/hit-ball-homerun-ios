@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        id="cordova-plugin-att-native"
+        version="1.0.0">
+    
+    <name>App Tracking Transparency Native</name>
+    <description>Native iOS App Tracking Transparency implementation</description>
+    <license>MIT</license>
+    
+    <engines>
+        <engine name="cordova" version=">=9.0.0"/>
+        <engine name="cordova-ios" version=">=6.0.0"/>
+    </engines>
+    
+    <js-module src="www/att.js" name="ATT">
+        <clobbers target="ATT" />
+    </js-module>
+    
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="ATTPlugin">
+                <param name="ios-package" value="ATTPlugin"/>
+            </feature>
+        </config-file>
+        
+        <config-file target="*-Info.plist" parent="NSUserTrackingUsageDescription">
+            <string>This identifier will be used to deliver personalized ads to you.</string>
+        </config-file>
+        
+        <header-file src="src/ios/ATTPlugin.h" />
+        <source-file src="src/ios/ATTPlugin.m" />
+        
+        <framework src="AppTrackingTransparency.framework" weak="true" />
+    </platform>
+</plugin>
