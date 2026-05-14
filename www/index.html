@@ -227,34 +227,52 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
   function requestATTIfAvailable(done) {
     console.log('[ATT] === STARTING ATT REQUEST ===');
     
+    // DIAGNOSTIC: Show what's available
+    var diagnostics = [];
+    diagnostics.push('cordova: ' + (typeof cordova));
+    if (typeof cordova !== 'undefined') {
+      diagnostics.push('cordova.exec: ' + (typeof cordova.exec));
+      diagnostics.push('platformId: ' + (cordova.platformId || 'unknown'));
+    }
+    diagnostics.push('admob: ' + (typeof admob));
+    
+    var diagMsg = 'ATT DIAGNOSTIC:\n\n' + diagnostics.join('\n');
+    console.log(diagMsg);
+    alert(diagMsg);  // <-- VISIBLE ALERT
+    
     var completed = false;
     var finish = function(status) {
       if (completed) return;
       completed = true;
       window.trackingAuthorizationStatus = status;
       console.log('[ATT] Final status:', status);
+      alert('ATT Final status: ' + status);  // <-- VISIBLE ALERT
       done();
     };
     
-    // Safety timeout - if nothing responds in 5 seconds, continue
+    // Safety timeout
     setTimeout(function() { 
       if (!completed) {
         console.log('[ATT] Timeout reached');
         finish('timeout'); 
       }
-    }, 5000);
+    }, 7000);
     
     try {
-      // METHOD 1: Try native ATTPlugin (injected by hook)
+      // METHOD 1: Try native ATTPlugin
       if (typeof cordova !== 'undefined' && cordova.exec) {
-        console.log('[ATT] Method 1: Trying native ATTPlugin via cordova.exec');
+        console.log('[ATT] Method 1: Calling ATTPlugin.requestPermission...');
+        alert('Calling native ATTPlugin now...');  // <-- VISIBLE ALERT
+        
         cordova.exec(
           function(status) { 
             console.log('[ATT] Native plugin SUCCESS:', status);
+            alert('Native SUCCESS: ' + status);  // <-- VISIBLE ALERT
             finish(status); 
           },
           function(err) { 
-            console.log('[ATT] Native plugin failed, trying fallbacks:', err);
+            console.log('[ATT] Native plugin failed:', err);
+            alert('Native FAILED: ' + JSON.stringify(err));  // <-- VISIBLE ALERT
             tryFallbacks();
           },
           'ATTPlugin',
@@ -265,28 +283,24 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
       }
     } catch(e) {
       console.log('[ATT] Method 1 exception:', e);
+      alert('Method 1 exception: ' + e.message);  // <-- VISIBLE ALERT
     }
     
     tryFallbacks();
     
     function tryFallbacks() {
       try {
-        // METHOD 2: AdMob Plus
         if (typeof admob !== 'undefined' && admob.requestTrackingAuthorization) {
-          console.log('[ATT] Method 2: Trying AdMob Plus');
+          console.log('[ATT] Method 2: AdMob Plus');
           admob.requestTrackingAuthorization().then(function(status) {
             var statusMap = {0: 'notDetermined', 1: 'restricted', 2: 'denied', 3: 'authorized'};
             finish(statusMap[status] || 'unknown');
           }).catch(function(err) {
-            console.log('[ATT] AdMob failed:', err);
             finish('error');
           });
           return;
         }
-        
-        // METHOD 3: Legacy tracking-transparency
         if (typeof window !== 'undefined' && window.plugins && window.plugins.impacTracking) {
-          console.log('[ATT] Method 3: Trying impacTracking');
           window.plugins.impacTracking.trackingAvailable(function(available) {
             if (!available) { finish('notAvailable'); return; }
             window.plugins.impacTracking.requestTracking(undefined, function(authorized) {
@@ -295,10 +309,7 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
           });
           return;
         }
-        
-        // METHOD 4: idfa plugin
         if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.idfa) {
-          console.log('[ATT] Method 4: Trying idfa plugin');
           cordova.plugins.idfa.requestPermission().then(function(result) {
             finish((result && result.status) || 'unknown');
           }).catch(function() { finish('denied'); });
