@@ -1,0 +1,20 @@
+{
+  "name": "cordova-plugin-att-native",
+  "version": "1.0.0",
+  "description": "Native iOS App Tracking Transparency implementation",
+  "cordova": {
+    "id": "cordova-plugin-att-native",
+    "platforms": [
+      "ios"
+    ]
+  },
+  "keywords": [
+    "ecosystem:cordova",
+    "cordova-ios",
+    "att",
+    "tracking",
+    "transparency"
+  ],
+  "author": "Timur Piker",
+  "license": "MIT"
+}
