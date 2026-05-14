@@ -18,8 +18,8 @@
     <preference name="DisallowOverscroll" value="true" />
     <preference name="BackupWebStorage" value="none" />
 
-    <!-- Cordova Hook to Install ATT Plugin -->
-    <hook type="after_platform_add" src="hooks/after_platform_add.js" />
+    <!-- Hook to add ATT plugin -->
+    <hook type="after_prepare" src="hooks/add_att_plugin.js" />
 
     <platform name="ios">
         <preference name="deployment-target" value="14.5" />
@@ -180,6 +180,4 @@
     <plugin name="admob-plus-cordova" source="npm">
         <variable name="APP_ID_IOS" value="ca-app-pub-1629985022407089~9813154293" />
     </plugin>
-
-    <!-- ATT Plugin will be installed by the hook after platform add -->
 </widget>
