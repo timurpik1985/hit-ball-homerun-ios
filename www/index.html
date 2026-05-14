@@ -227,26 +227,34 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
   function requestATTIfAvailable(done) {
     console.log('[ATT] === STARTING ATT REQUEST ===');
     
-    // DIAGNOSTIC: Show what's available
-    var diagnostics = [];
-    diagnostics.push('cordova: ' + (typeof cordova));
-    if (typeof cordova !== 'undefined') {
-      diagnostics.push('cordova.exec: ' + (typeof cordova.exec));
-      diagnostics.push('platformId: ' + (cordova.platformId || 'unknown'));
+    // Wait for cordova deviceready if not available yet
+    if (typeof cordova === 'undefined') {
+      console.log('[ATT] Cordova not loaded yet, waiting for deviceready...');
+      var waitStart = Date.now();
+      var waitInterval = setInterval(function() {
+        if (typeof cordova !== 'undefined' && cordova.exec) {
+          clearInterval(waitInterval);
+          console.log('[ATT] Cordova now available after', (Date.now() - waitStart), 'ms');
+          actuallyRequestATT(done);
+        } else if (Date.now() - waitStart > 3000) {
+          clearInterval(waitInterval);
+          console.log('[ATT] Cordova never loaded, using fallbacks');
+          actuallyRequestATT(done);
+        }
+      }, 100);
+      return;
     }
-    diagnostics.push('admob: ' + (typeof admob));
     
-    var diagMsg = 'ATT DIAGNOSTIC:\n\n' + diagnostics.join('\n');
-    console.log(diagMsg);
-    alert(diagMsg);  // <-- VISIBLE ALERT
-    
+    actuallyRequestATT(done);
+  }
+  
+  function actuallyRequestATT(done) {
     var completed = false;
     var finish = function(status) {
       if (completed) return;
       completed = true;
       window.trackingAuthorizationStatus = status;
       console.log('[ATT] Final status:', status);
-      alert('ATT Final status: ' + status);  // <-- VISIBLE ALERT
       done();
     };
     
@@ -262,17 +270,13 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
       // METHOD 1: Try native ATTPlugin
       if (typeof cordova !== 'undefined' && cordova.exec) {
         console.log('[ATT] Method 1: Calling ATTPlugin.requestPermission...');
-        alert('Calling native ATTPlugin now...');  // <-- VISIBLE ALERT
-        
         cordova.exec(
           function(status) { 
             console.log('[ATT] Native plugin SUCCESS:', status);
-            alert('Native SUCCESS: ' + status);  // <-- VISIBLE ALERT
             finish(status); 
           },
           function(err) { 
             console.log('[ATT] Native plugin failed:', err);
-            alert('Native FAILED: ' + JSON.stringify(err));  // <-- VISIBLE ALERT
             tryFallbacks();
           },
           'ATTPlugin',
@@ -283,7 +287,6 @@ APP STORE / iOS WRAPPER REQUIRED SETTINGS:
       }
     } catch(e) {
       console.log('[ATT] Method 1 exception:', e);
-      alert('Method 1 exception: ' + e.message);  // <-- VISIBLE ALERT
     }
     
     tryFallbacks();
@@ -4124,6 +4127,9 @@ window.addEventListener('load', function() {
   }, false);
 });
 </script>
+
+<!-- THIS IS THE CRITICAL LINE - LOADS CORDOVA NATIVE BRIDGE -->
+<script src="cordova.js"></script>
 
 </body>
 </html>
