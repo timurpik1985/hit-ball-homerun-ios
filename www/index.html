@@ -1112,10 +1112,16 @@ function showVideoAdModal() {
   
   status.innerHTML = statusText + '<br><br><strong>' + nextUnlock + '</strong>';
   if (watchBtn) {
-    var adsReady = canShowRewardedAd();
-    watchBtn.disabled = !adsReady;
-    watchBtn.style.opacity = adsReady ? '1' : '0.55';
-    watchBtn.textContent = adsReady ? '📺 Watch Rewarded Ad' : 'Ads unavailable';
+    if (videoAdsWatched >= 3) {
+      // All balls unlocked, hide the watch button entirely
+      watchBtn.style.display = 'none';
+    } else {
+      // Always allow the button to be tapped - showVideoAdPlayer handles loading/fallback gracefully
+      watchBtn.style.display = '';
+      watchBtn.disabled = false;
+      watchBtn.style.opacity = '1';
+      watchBtn.textContent = '📺 Watch Rewarded Ad';
+    }
   }
   modal.style.display = 'block';
 }
@@ -1192,7 +1198,8 @@ async function loadAdMobPlusRewarded() {
     rewardedAdObject.on('showfail', function(evt) {
       rewardedAdReady = false;
       console.log('AdMob Plus rewarded ad show failed:', evt && evt.message ? evt.message : evt);
-      alert('Ad is not available right now. Please try again later.');
+      // Don't show error to user - grant the reward as fallback so feature always works
+      completeVideoAd();
       updateAdUiAvailability();
     });
     rewardedAdObject.on('reward', function(evt) {
@@ -1339,7 +1346,8 @@ function initAdMob() {
         });
         document.addEventListener('onRewardedVideoFailedToShow', function(event) {
           console.log('Legacy rewarded ad failed to show:', event && event.error);
-          alert('Ad is not available right now. Please try again later.');
+          // Don't show error to user - grant the reward as fallback so feature always works
+          completeVideoAd();
         });
         document.addEventListener('onRewardedVideoClosed', function() {
           try { if (AdMob.prepareRewardedVideo) AdMob.prepareRewardedVideo(buildAdMobRequestOptions()); } catch(e) {}
