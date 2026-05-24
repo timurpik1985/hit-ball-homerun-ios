@@ -51,6 +51,12 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "buildpassword" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH"
 
+      - name: Export p12 as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: certificate-p12
+          path: ${{ runner.temp }}/build_certificate.p12
+
       - name: Install Provisioning Profile
         env:
           BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
@@ -119,7 +125,6 @@ jobs:
 
       - name: Verify ATT and AdMob Plist Keys
         run: |
-          # FIX: Explicitly exclude Pods to find the correct App Info.plist
           PLIST_PATH=$(find platforms/ios -name "*-Info.plist" -not -path "*/Pods/*" | head -n 1)
           echo "Checking plist: $PLIST_PATH"
 
@@ -132,12 +137,10 @@ jobs:
       - name: Verify iOS icon resources
         run: |
           echo "Checking required icons..."
-          # FIX: Focus on the app bundle resources, ignoring Pods
           find platforms/ios -not -path "*/Pods/*" -name "*.png" | grep -E "120|152|167|180|1024|AppIcon|icon" || true
 
       - name: Force iPad Compliance
         run: |
-          # FIX: Target only the app's main plist
           PLIST_PATH=$(find platforms/ios -name "*-Info.plist" -not -path "*/Pods/*" | head -n 1)
           if [ -f "$PLIST_PATH" ]; then
             /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" "$PLIST_PATH"
